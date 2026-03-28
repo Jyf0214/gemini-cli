@@ -211,7 +211,7 @@ describe('loggers', () => {
       getContentGeneratorConfig: () => ({
         model: 'test-model',
         apiKey: 'test-api-key',
-        authType: AuthType.USE_VERTEX_AI,
+        authType: AuthType.OPENAI_COMPATIBLE,
       }),
       getTelemetryEnabled: () => true,
       getUsageStatisticsEnabled: () => true,
@@ -266,7 +266,7 @@ describe('loggers', () => {
           core_tools_enabled: 'ls,read-file',
           approval_mode: 'default',
           api_key_enabled: true,
-          vertex_ai_enabled: true,
+          vertex_ai_enabled: false,
           log_user_prompts_enabled: true,
           file_filtering_respect_git_ignore: true,
           debug_mode: true,
@@ -278,7 +278,7 @@ describe('loggers', () => {
           extension_ids: 'id-one,id-two',
           extensions_count: 2,
           extensions: 'ext-one,ext-two',
-          auth_type: 'vertex-ai',
+          auth_type: 'openai-compatible',
           worktree_active: false,
         },
       });
@@ -324,7 +324,7 @@ describe('loggers', () => {
       const event = new UserPromptEvent(
         11,
         'prompt-id-8',
-        AuthType.USE_VERTEX_AI,
+        AuthType.OPENAI_COMPATIBLE,
         'test-prompt',
       );
 
@@ -342,7 +342,7 @@ describe('loggers', () => {
           prompt_length: 11,
           prompt: 'test-prompt',
           prompt_id: 'prompt-id-8',
-          auth_type: 'vertex-ai',
+          auth_type: 'openai-compatible',
         },
       });
     });
@@ -362,7 +362,7 @@ describe('loggers', () => {
       const event = new UserPromptEvent(
         11,
         'prompt-id-9',
-        AuthType.COMPUTE_ADC,
+        AuthType.OPENAI_COMPATIBLE,
         'test-prompt',
       );
 
@@ -379,7 +379,7 @@ describe('loggers', () => {
           interactive: false,
           prompt_length: 11,
           prompt_id: 'prompt-id-9',
-          auth_type: 'compute-default-credentials',
+          auth_type: 'openai-compatible',
         },
       });
     });
@@ -464,7 +464,7 @@ describe('loggers', () => {
             },
           ],
         },
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
         usageData,
         'test-response',
       );
@@ -518,7 +518,7 @@ describe('loggers', () => {
           status_code: 200,
           genAiAttributes: {
             'gen_ai.operation.name': 'generate_content',
-            'gen_ai.provider.name': 'gcp.vertex_ai',
+            'gen_ai.provider.name': 'gcp.gen_ai',
             'gen_ai.request.model': 'test-model',
             'gen_ai.response.model': 'test-model',
           },
@@ -534,7 +534,7 @@ describe('loggers', () => {
           type: 'input',
           genAiAttributes: {
             'gen_ai.operation.name': 'generate_content',
-            'gen_ai.provider.name': 'gcp.vertex_ai',
+            'gen_ai.provider.name': 'gcp.gen_ai',
             'gen_ai.request.model': 'test-model',
             'gen_ai.response.model': 'test-model',
           },
@@ -549,7 +549,7 @@ describe('loggers', () => {
           type: 'output',
           genAiAttributes: {
             'gen_ai.operation.name': 'generate_content',
-            'gen_ai.provider.name': 'gcp.vertex_ai',
+            'gen_ai.provider.name': 'gcp.gen_ai',
             'gen_ai.request.model': 'test-model',
             'gen_ai.response.model': 'test-model',
           },
@@ -570,7 +570,7 @@ describe('loggers', () => {
         100,
         { prompt_id: 'prompt-id-role', contents: [] },
         { candidates: [] },
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
         {},
         'test-response',
         LlmRole.SUBAGENT,
@@ -651,7 +651,7 @@ describe('loggers', () => {
             port: 8080,
           },
         },
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
         'ApiError',
         503,
       );
@@ -708,7 +708,7 @@ describe('loggers', () => {
           status_code: 503,
           genAiAttributes: {
             'gen_ai.operation.name': 'generate_content',
-            'gen_ai.provider.name': 'gcp.vertex_ai',
+            'gen_ai.provider.name': 'gcp.gen_ai',
             'gen_ai.request.model': 'test-model',
             'gen_ai.response.model': 'test-model',
             'error.type': 'ApiError',
@@ -730,7 +730,7 @@ describe('loggers', () => {
         'error',
         100,
         { prompt_id: 'prompt-id-role', contents: [] },
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
         'ApiError',
         503,
         LlmRole.SUBAGENT,
@@ -760,7 +760,7 @@ describe('loggers', () => {
       getExperiments: () => undefined,
       getExperimentsAsync: async () => undefined,
       getContentGeneratorConfig: () => ({
-        authType: AuthType.LOGIN_WITH_GOOGLE,
+        authType: AuthType.OPENAI_COMPATIBLE,
       }),
     } as Config;
 
@@ -793,7 +793,7 @@ describe('loggers', () => {
         attributes: expect.objectContaining({
           'event.name': 'gen_ai.client.inference.operation.details',
           'gen_ai.request.model': 'test-model',
-          'gen_ai.provider.name': 'gcp.vertex_ai',
+          'gen_ai.provider.name': 'gcp.gen_ai',
         }),
       });
     });
@@ -822,7 +822,7 @@ describe('loggers', () => {
         attributes: expect.objectContaining({
           'event.name': 'gen_ai.client.inference.operation.details',
           'gen_ai.request.model': 'test-model',
-          'gen_ai.provider.name': 'gcp.vertex_ai',
+          'gen_ai.provider.name': 'gcp.gen_ai',
         }),
       });
     });
@@ -838,7 +838,7 @@ describe('loggers', () => {
         getExperiments: () => undefined,
         getExperimentsAsync: async () => undefined,
         getContentGeneratorConfig: () => ({
-          authType: AuthType.USE_GEMINI,
+          authType: AuthType.OPENAI_COMPATIBLE,
         }),
       } as Config;
 
@@ -909,6 +909,7 @@ describe('loggers', () => {
           'gen_ai.provider.name': 'gcp.gen_ai',
           'gen_ai.output.type': 'json',
           'gen_ai.request.stop_sequences': ['end'],
+          'gen_ai.request.stop_sequences': ['end'],
           'gen_ai.system_instructions': JSON.stringify([
             { type: 'text', content: 'be helpful' },
           ]),
@@ -927,7 +928,7 @@ describe('loggers', () => {
         getExperiments: () => undefined,
         getExperimentsAsync: async () => undefined,
         getContentGeneratorConfig: () => ({
-          authType: AuthType.USE_VERTEX_AI,
+          authType: AuthType.OPENAI_COMPATIBLE,
         }),
       } as Config;
 
@@ -968,7 +969,7 @@ describe('loggers', () => {
         'gen_ai.client.inference.operation.details',
       );
       expect(attributes['gen_ai.request.model']).toBe('gemini-1.0-pro');
-      expect(attributes['gen_ai.provider.name']).toBe('gcp.vertex_ai');
+      expect(attributes['gen_ai.provider.name']).toBe('gcp.gen_ai');
       // Ensure prompt messages are NOT included
       expect(attributes['gen_ai.input.messages']).toBeUndefined();
     });
@@ -983,7 +984,7 @@ describe('loggers', () => {
         getExperimentsAsync: async () => undefined,
         getUsageStatisticsEnabled: () => true,
         getContentGeneratorConfig: () => ({
-          authType: AuthType.USE_GEMINI,
+          authType: AuthType.OPENAI_COMPATIBLE,
         }),
       } as Config;
 
@@ -1043,7 +1044,7 @@ describe('loggers', () => {
     } as unknown as Config;
 
     it('should log flash fallback event', () => {
-      const event = new FlashFallbackEvent(AuthType.USE_VERTEX_AI);
+      const event = new FlashFallbackEvent(AuthType.OPENAI_COMPATIBLE);
 
       logFlashFallback(mockConfig, event);
 
@@ -1056,7 +1057,7 @@ describe('loggers', () => {
           'event.name': EVENT_FLASH_FALLBACK,
           'event.timestamp': '2025-01-01T00:00:00.000Z',
           interactive: false,
-          auth_type: 'vertex-ai',
+          auth_type: 'openai-compatible',
         },
       });
     });

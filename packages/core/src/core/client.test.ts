@@ -200,7 +200,7 @@ describe('Gemini Client (client.ts)', () => {
     const contentGeneratorConfig: ContentGeneratorConfig = {
       apiKey: 'test-key',
       vertexai: false,
-      authType: AuthType.USE_GEMINI,
+      authType: AuthType.OPENAI_COMPATIBLE,
     };
     mockConfig = {
       getContentGeneratorConfig: vi

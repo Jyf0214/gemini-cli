@@ -45,11 +45,10 @@ describe('ApprovalModeStrategy', () => {
       getGemini31Launched: vi.fn().mockResolvedValue(false),
       getUseCustomToolModel: vi.fn().mockImplementation(async () => {
         const launched = await mockConfig.getGemini31Launched();
-        const authType = mockConfig.getContentGeneratorConfig?.()?.authType;
-        return launched && authType === AuthType.USE_GEMINI;
+        return launched;
       }),
       getContentGeneratorConfig: vi.fn().mockReturnValue({
-        authType: AuthType.LOGIN_WITH_GOOGLE,
+        authType: AuthType.OPENAI_COMPATIBLE,
       }),
     } as unknown as Config;
 

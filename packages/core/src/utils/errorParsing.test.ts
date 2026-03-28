@@ -11,8 +11,7 @@ import { AuthType } from '../core/contentGenerator.js';
 import type { StructuredError } from '../core/turn.js';
 
 describe('parseAndFormatApiError', () => {
-  const vertexMessage = 'request a quota increase through Vertex';
-  const geminiMessage = 'request a quota increase through AI Studio';
+  const openaiCompatibleMessage = '请求配额增加';
 
   it('should format a valid API error JSON', () => {
     const errorMessage =
@@ -34,16 +33,19 @@ describe('parseAndFormatApiError', () => {
     );
     expect(result).toContain('[API Error: Rate limit exceeded');
     expect(result).toContain(
-      'Possible quota limitations in place or slow response times detected. Switching to the gemini-2.5-flash model',
+      '可能存在配额限制或检测到响应时间过慢。在本次会话的剩余时间里，将切换到 gemini-2.5-flash 模型。',
     );
   });
 
   it('should format a 429 API error with the vertex message', () => {
     const errorMessage =
       'got status: 429 Too Many Requests. {"error":{"code":429,"message":"Rate limit exceeded","status":"RESOURCE_EXHAUSTED"}}';
-    const result = parseAndFormatApiError(errorMessage, AuthType.USE_VERTEX_AI);
+    const result = parseAndFormatApiError(
+      errorMessage,
+      AuthType.OPENAI_COMPATIBLE,
+    );
     expect(result).toContain('[API Error: Rate limit exceeded');
-    expect(result).toContain(vertexMessage);
+    expect(result).toContain(openaiCompatibleMessage);
   });
 
   it('should return the original message if it is not a JSON error', () => {
@@ -85,9 +87,12 @@ describe('parseAndFormatApiError', () => {
       },
     });
 
-    const result = parseAndFormatApiError(errorMessage, AuthType.USE_GEMINI);
+    const result = parseAndFormatApiError(
+      errorMessage,
+      AuthType.OPENAI_COMPATIBLE,
+    );
     expect(result).toContain('Gemini 2.5 Pro Preview');
-    expect(result).toContain(geminiMessage);
+    expect(result).toContain(openaiCompatibleMessage);
   });
 
   it('should format a StructuredError', () => {
@@ -104,9 +109,9 @@ describe('parseAndFormatApiError', () => {
       message: 'Rate limit exceeded',
       status: 429,
     };
-    const result = parseAndFormatApiError(error, AuthType.USE_VERTEX_AI);
+    const result = parseAndFormatApiError(error, AuthType.OPENAI_COMPATIBLE);
     expect(result).toContain('[API Error: Rate limit exceeded]');
-    expect(result).toContain(vertexMessage);
+    expect(result).toContain(openaiCompatibleMessage);
   });
 
   it('should handle an unknown error type', () => {

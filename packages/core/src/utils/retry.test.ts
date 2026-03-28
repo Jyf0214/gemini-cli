@@ -593,7 +593,11 @@ describe('retryWithBackoff', () => {
       expect(calledDelayMs).toBeLessThanOrEqual(12345 * 1.2);
     });
 
-    it.each([[AuthType.USE_GEMINI], [AuthType.USE_VERTEX_AI], [undefined]])(
+    it.each([
+      [AuthType.OPENAI_COMPATIBLE],
+      [AuthType.OPENAI_COMPATIBLE],
+      [undefined],
+    ])(
       'should invoke onPersistent429 callback (delegating decision) for non-Google auth users (authType: %s) on TerminalQuotaError',
       async (authType) => {
         const fallbackCallback = vi.fn();
@@ -654,14 +658,14 @@ describe('retryWithBackoff', () => {
         fallbackOccurred = true;
         return await fallbackCallback(authType, error);
       },
-      authType: AuthType.LOGIN_WITH_GOOGLE,
+      authType: AuthType.OPENAI_COMPATIBLE,
     });
 
     await vi.runAllTimersAsync();
 
     await expect(promise).resolves.toBe('success');
     expect(fallbackCallback).toHaveBeenCalledWith(
-      AuthType.LOGIN_WITH_GOOGLE,
+      AuthType.OPENAI_COMPATIBLE,
       expect.objectContaining({ status: 500 }),
     );
     // 3 attempts (initial + 2 retries) fail with 500, then fallback triggers, then 1 success
@@ -686,14 +690,14 @@ describe('retryWithBackoff', () => {
         fallbackOccurred = true;
         return await fallbackCallback(authType, error);
       },
-      authType: AuthType.LOGIN_WITH_GOOGLE,
+      authType: AuthType.OPENAI_COMPATIBLE,
     });
 
     await vi.runAllTimersAsync();
 
     await expect(promise).resolves.toBe('success');
     expect(fallbackCallback).toHaveBeenCalledWith(
-      AuthType.LOGIN_WITH_GOOGLE,
+      AuthType.OPENAI_COMPATIBLE,
       expect.any(ModelNotFoundError),
     );
     expect(mockFn).toHaveBeenCalledTimes(2);
@@ -754,7 +758,7 @@ describe('retryWithBackoff', () => {
           initialDelayMs: 1,
           getAvailabilityContext: getContext,
           onPersistent429,
-          authType: AuthType.LOGIN_WITH_GOOGLE,
+          authType: AuthType.OPENAI_COMPATIBLE,
         }),
       ).rejects.toThrow(TerminalQuotaError);
 

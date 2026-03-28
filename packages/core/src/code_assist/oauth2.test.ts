@@ -227,7 +227,7 @@ describe('oauth2', () => {
       });
 
       const clientPromise = getOauthClient(
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
         mockConfig,
       );
 
@@ -316,7 +316,7 @@ describe('oauth2', () => {
         });
       });
 
-      await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+      await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
       await eventPromise;
     });
 
@@ -329,11 +329,11 @@ describe('oauth2', () => {
       } as unknown as Config;
 
       await expect(
-        getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfigNonInteractive),
+        getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfigNonInteractive),
       ).rejects.toThrow(FatalAuthenticationError);
 
       await expect(
-        getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfigNonInteractive),
+        getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfigNonInteractive),
       ).rejects.toThrow(
         'Manual authorization is required but the current session is non-interactive.',
       );
@@ -386,7 +386,7 @@ describe('oauth2', () => {
       (readline.createInterface as Mock).mockReturnValue(mockReadline);
 
       const client = await getOauthClient(
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
         mockConfigWithNoBrowser,
       );
 
@@ -468,7 +468,7 @@ describe('oauth2', () => {
           .mockResolvedValue({ email: 'test-user-code-account@gmail.com' }),
       } as unknown as Response);
 
-      await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfigWithNoBrowser);
+      await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfigWithNoBrowser);
 
       // Verify Google Account was cached
       const googleAccountPath = path.join(
@@ -526,7 +526,7 @@ describe('oauth2', () => {
           () => mockClient as unknown as OAuth2Client,
         );
 
-        await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
 
         expect(mockClient.setCredentials).toHaveBeenCalledWith(cachedCreds);
         expect(mockClient.getAccessToken).toHaveBeenCalled();
@@ -535,7 +535,7 @@ describe('oauth2', () => {
       });
 
       it('should use Compute to get a client if no cached credentials exist', async () => {
-        await getOauthClient(AuthType.COMPUTE_ADC, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
 
         expect(Compute).toHaveBeenCalledWith({});
         expect(mockGetAccessToken).toHaveBeenCalled();
@@ -546,7 +546,7 @@ describe('oauth2', () => {
         mockComputeClient.credentials = newCredentials;
         mockGetAccessToken.mockResolvedValue({ token: 'new-adc-token' });
 
-        await getOauthClient(AuthType.COMPUTE_ADC, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
 
         const credsPath = path.join(
           tempHomeDir,
@@ -557,7 +557,10 @@ describe('oauth2', () => {
       });
 
       it('should return the Compute client on successful ADC authentication', async () => {
-        const client = await getOauthClient(AuthType.COMPUTE_ADC, mockConfig);
+        const client = await getOauthClient(
+          AuthType.OPENAI_COMPATIBLE,
+          mockConfig,
+        );
         expect(client).toBe(mockComputeClient);
       });
 
@@ -566,7 +569,7 @@ describe('oauth2', () => {
         mockGetAccessToken.mockRejectedValue(testError);
 
         await expect(
-          getOauthClient(AuthType.COMPUTE_ADC, mockConfig),
+          getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig),
         ).rejects.toThrow(
           'Could not authenticate using metadata server application default credentials. Please select a different authentication method or ensure you are in a properly configured environment. Error: ADC Failed',
         );
@@ -606,7 +609,7 @@ describe('oauth2', () => {
           () => mockClient as unknown as OAuth2Client,
         );
 
-        await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
 
         // Assert the correct credentials were used
         expect(mockClient.setCredentials).toHaveBeenCalledWith(defaultCreds);
@@ -630,7 +633,7 @@ describe('oauth2', () => {
           () => mockClient as unknown as OAuth2Client,
         );
 
-        await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
 
         // Assert the correct credentials were used
         expect(mockClient.setCredentials).toHaveBeenCalledWith(envCreds);
@@ -669,7 +672,7 @@ describe('oauth2', () => {
         );
 
         const client = await getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
 
@@ -707,7 +710,7 @@ describe('oauth2', () => {
         } as unknown as Response);
 
         const client = await getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
 
@@ -766,7 +769,7 @@ describe('oauth2', () => {
         await fs.promises.mkdir(path.dirname(credsPath), { recursive: true });
         await fs.promises.writeFile(credsPath, JSON.stringify(cachedCreds));
 
-        await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
 
         // It should be called with the cached credentials, not the GCP access token.
         expect(mockSetCredentials).toHaveBeenCalledTimes(1);
@@ -799,7 +802,7 @@ describe('oauth2', () => {
         await fs.promises.mkdir(path.dirname(credsPath), { recursive: true });
         await fs.promises.writeFile(credsPath, JSON.stringify(cachedCreds));
 
-        await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
 
         // It should be called with the cached credentials, not the GCP access token.
         expect(mockSetCredentials).toHaveBeenCalledTimes(1);
@@ -819,7 +822,7 @@ describe('oauth2', () => {
         vi.mocked(OAuth2Client).mockImplementation(() => mockOAuth2Client);
 
         await expect(
-          getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig),
+          getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig),
         ).rejects.toThrow('Failed to open browser: Browser launch failed');
       });
 
@@ -852,7 +855,7 @@ describe('oauth2', () => {
         ) as unknown as typeof setTimeout;
 
         await expect(
-          getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig),
+          getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig),
         ).rejects.toThrow(
           'Authentication timed out after 5 minutes. The browser tab may have gotten stuck in a loading state. Please try again or use NO_BROWSER=true for manual authentication.',
         );
@@ -915,7 +918,7 @@ describe('oauth2', () => {
         const clearTimeoutSpy = vi.spyOn(global, 'clearTimeout');
 
         const clientPromise = getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
         await serverListeningPromise;
@@ -974,7 +977,7 @@ describe('oauth2', () => {
         });
 
         const clientPromise = getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
         await serverListeningPromise;
@@ -1031,7 +1034,7 @@ describe('oauth2', () => {
         });
 
         const clientPromise = getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
         await serverListeningPromise;
@@ -1088,7 +1091,7 @@ describe('oauth2', () => {
         });
 
         const clientPromise = getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
         await serverListeningPromise;
@@ -1159,7 +1162,7 @@ describe('oauth2', () => {
         });
 
         const clientPromise = getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
         await serverListeningPromise;
@@ -1244,7 +1247,7 @@ describe('oauth2', () => {
         });
 
         const clientPromise = getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
         await serverListeningPromise;
@@ -1307,7 +1310,7 @@ describe('oauth2', () => {
           .mockImplementation(() => {});
 
         await expect(
-          getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfigWithNoBrowser),
+          getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfigWithNoBrowser),
         ).rejects.toThrow('Failed to authenticate with user code.');
 
         expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -1354,7 +1357,7 @@ describe('oauth2', () => {
         const processRemoveListenerSpy = vi.spyOn(process, 'removeListener');
 
         const clientPromise = getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
 
@@ -1421,7 +1424,7 @@ describe('oauth2', () => {
         );
 
         const clientPromise = getOauthClient(
-          AuthType.LOGIN_WITH_GOOGLE,
+          AuthType.OPENAI_COMPATIBLE,
           mockConfig,
         );
 
@@ -1460,7 +1463,7 @@ describe('oauth2', () => {
         );
 
         await expect(
-          getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig),
+          getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig),
         ).rejects.toThrow(FatalCancellationError);
       });
     });
@@ -1531,17 +1534,17 @@ describe('oauth2', () => {
         );
 
         // First call, should create a client
-        await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
         expect(OAuth2Client).toHaveBeenCalledTimes(1);
 
         // Second call, should use cached client
-        await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
         expect(OAuth2Client).toHaveBeenCalledTimes(1);
 
         clearOauthClientCache();
 
         // Third call, after clearing cache, should create a new client
-        await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+        await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
         expect(OAuth2Client).toHaveBeenCalledTimes(2);
       });
     });
@@ -1642,7 +1645,7 @@ describe('oauth2', () => {
       });
 
       const clientPromise = getOauthClient(
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
         mockConfig,
       );
 
@@ -1694,7 +1697,7 @@ describe('oauth2', () => {
         () => mockClient as unknown as OAuth2Client,
       );
 
-      await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, mockConfig);
+      await getOauthClient(AuthType.OPENAI_COMPATIBLE, mockConfig);
 
       expect(
         vi.mocked(OAuthCredentialStorage.loadCredentials),

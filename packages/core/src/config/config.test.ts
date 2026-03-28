@@ -595,7 +595,7 @@ describe('Server Config (config.ts)', () => {
   describe('refreshAuth', () => {
     it('should refresh auth and update config', async () => {
       const config = new Config(baseParams);
-      const authType = AuthType.USE_GEMINI;
+      const authType = AuthType.OPENAI_COMPATIBLE;
       const mockContentConfig = {
         apiKey: 'test-key',
       };
@@ -630,7 +630,7 @@ describe('Server Config (config.ts)', () => {
           }) as Partial<ContentGeneratorConfig> as ContentGeneratorConfig,
       );
 
-      await config.refreshAuth(AuthType.USE_GEMINI);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
       expect(spy).toHaveBeenCalled();
     });
@@ -645,9 +645,9 @@ describe('Server Config (config.ts)', () => {
           }) as Partial<ContentGeneratorConfig> as ContentGeneratorConfig,
       );
 
-      await config.refreshAuth(AuthType.USE_GEMINI);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
-      await config.refreshAuth(AuthType.LOGIN_WITH_GOOGLE);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
       const loopContext: AgentLoopContext = config;
       expect(
@@ -665,9 +665,9 @@ describe('Server Config (config.ts)', () => {
           }) as Partial<ContentGeneratorConfig> as ContentGeneratorConfig,
       );
 
-      await config.refreshAuth(AuthType.USE_GEMINI);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
-      await config.refreshAuth(AuthType.USE_VERTEX_AI);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
       const loopContext: AgentLoopContext = config;
       expect(
@@ -685,9 +685,9 @@ describe('Server Config (config.ts)', () => {
           }) as Partial<ContentGeneratorConfig> as ContentGeneratorConfig,
       );
 
-      await config.refreshAuth(AuthType.USE_VERTEX_AI);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
-      await config.refreshAuth(AuthType.USE_GEMINI);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
       const loopContext: AgentLoopContext = config;
       expect(
@@ -710,7 +710,7 @@ describe('Server Config (config.ts)', () => {
         model: PREVIEW_GEMINI_MODEL_AUTO,
       });
 
-      await config.refreshAuth(AuthType.LOGIN_WITH_GOOGLE);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
       expect(config.getModel()).toBe(PREVIEW_GEMINI_FLASH_MODEL);
     });
@@ -730,7 +730,7 @@ describe('Server Config (config.ts)', () => {
         model: PREVIEW_GEMINI_MODEL_AUTO,
       });
 
-      await config.refreshAuth(AuthType.LOGIN_WITH_GOOGLE);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
       expect(config.getModel()).toBe(PREVIEW_GEMINI_MODEL_AUTO);
     });
@@ -1993,7 +1993,7 @@ describe('BaseLlmClient Lifecycle', () => {
 
   it('should successfully initialize BaseLlmClient after refreshAuth is called', async () => {
     const config = new Config(baseParams);
-    const authType = AuthType.USE_GEMINI;
+    const authType = AuthType.OPENAI_COMPATIBLE;
     const mockContentConfig = { model: 'gemini-flash', apiKey: 'test-key' };
 
     vi.mocked(createContentGeneratorConfig).mockResolvedValue(
@@ -2873,7 +2873,7 @@ describe('Config Quota & Preview Model Access', () => {
       const mockTierName = 'Standard Tier';
 
       vi.mocked(createContentGeneratorConfig).mockResolvedValue({
-        authType: AuthType.USE_GEMINI,
+        authType: AuthType.OPENAI_COMPATIBLE,
       } as ContentGeneratorConfig);
 
       vi.mocked(createContentGenerator).mockResolvedValue({
@@ -2881,7 +2881,7 @@ describe('Config Quota & Preview Model Access', () => {
         userTierName: mockTierName,
       } as Partial<CodeAssistServer> as CodeAssistServer);
 
-      await config.refreshAuth(AuthType.USE_GEMINI);
+      await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
       expect(config.getUserTier()).toBe(mockTier);
       expect(config.getUserTierName()).toBe(mockTierName);
@@ -3252,7 +3252,7 @@ describe('Model Persistence Bug Fix (#19864)', () => {
 
   it('should NOT reset preview model for CodeAssist auth when refreshUserQuota is not called (no projectId)', async () => {
     const mockContentConfig = {
-      authType: AuthType.LOGIN_WITH_GOOGLE,
+      authType: AuthType.OPENAI_COMPATIBLE,
     } as Partial<ContentGeneratorConfig> as ContentGeneratorConfig;
 
     const mockContentGenerator = {
@@ -3271,16 +3271,16 @@ describe('Model Persistence Bug Fix (#19864)', () => {
     expect(config.getModel()).toBe(PREVIEW_GEMINI_3_1_MODEL);
 
     // Call refreshAuth to simulate restart (CodeAssist auth, no projectId)
-    await config.refreshAuth(AuthType.LOGIN_WITH_GOOGLE);
+    await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
     // Verify the model was NOT reset (bug fix)
     expect(config.getModel()).toBe(PREVIEW_GEMINI_3_1_MODEL);
     expect(config.getModel()).not.toBe(DEFAULT_GEMINI_MODEL_AUTO);
   });
 
-  it('should NOT reset preview model for USE_GEMINI (hasAccessToPreviewModel is set to true)', async () => {
+  it('should NOT reset preview model for OPENAI_COMPATIBLE (hasAccessToPreviewModel is set to true)', async () => {
     const mockContentConfig = {
-      authType: AuthType.USE_GEMINI,
+      authType: AuthType.OPENAI_COMPATIBLE,
     } as Partial<ContentGeneratorConfig> as ContentGeneratorConfig;
 
     const mockContentGenerator = {
@@ -3298,9 +3298,9 @@ describe('Model Persistence Bug Fix (#19864)', () => {
     expect(config.getModel()).toBe(PREVIEW_GEMINI_3_1_MODEL);
 
     // Call refreshAuth
-    await config.refreshAuth(AuthType.USE_GEMINI);
+    await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 
-    // For USE_GEMINI, hasAccessToPreviewModel should be set to true
+    // For OPENAI_COMPATIBLE, hasAccessToPreviewModel should be set to true
     // So the model should NOT be reset
     expect(config.getModel()).toBe(PREVIEW_GEMINI_3_1_MODEL);
     expect(config.getHasAccessToPreviewModel()).toBe(true);

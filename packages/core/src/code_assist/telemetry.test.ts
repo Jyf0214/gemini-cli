@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   createConversationOffered,
   formatProtoJsonDuration,
@@ -13,7 +13,6 @@ import {
 } from './telemetry.js';
 import {
   ActionStatus,
-  ConversationInteractionInteraction,
   InitiationMethod,
   type StreamingLatency,
 } from './types.js';
@@ -22,17 +21,9 @@ import {
   GenerateContentResponse,
   type FunctionCall,
 } from '@google/genai';
-import * as codeAssist from './codeAssist.js';
 import type { CodeAssistServer } from './server.js';
-import type {
-  CompletedToolCall,
-  ToolCallResponseInfo,
-} from '../scheduler/types.js';
-import {
-  ToolConfirmationOutcome,
-  type AnyDeclarativeTool,
-  type AnyToolInvocation,
-} from '../tools/tools.js';
+import type { CompletedToolCall } from '../scheduler/types.js';
+import { ToolConfirmationOutcome } from '../tools/tools.js';
 import type { Config } from '../config/config.js';
 
 function createMockResponse(
@@ -313,26 +304,11 @@ describe('telemetry', () => {
   });
 
   describe('recordToolCallInteractions', () => {
-    let mockServer: { recordConversationInteraction: ReturnType<typeof vi.fn> };
-
-    beforeEach(() => {
-      mockServer = {
-        recordConversationInteraction: vi.fn(),
-      };
-      vi.spyOn(codeAssist, 'getCodeAssistServer').mockReturnValue(
-        mockServer as unknown as CodeAssistServer,
-      );
-    });
-
-    afterEach(() => {
-      vi.restoreAllMocks();
-    });
-
-    it('should record ACCEPT_FILE interaction for accepted edit tools', async () => {
+    it('should not record any interactions (Code Assist is no longer supported)', async () => {
       const toolCalls: CompletedToolCall[] = [
         {
           request: {
-            name: 'replace', // in EDIT_TOOL_NAMES
+            name: 'replace',
             args: {},
             callId: 'call-1',
             isClientInitiated: false,
@@ -352,190 +328,16 @@ describe('telemetry', () => {
         } as unknown as CompletedToolCall,
       ];
 
-      await recordToolCallInteractions({} as Config, toolCalls);
-
-      expect(mockServer.recordConversationInteraction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          traceId: 'trace-1',
-          status: ActionStatus.ACTION_STATUS_NO_ERROR,
-          interaction: ConversationInteractionInteraction.ACCEPT_FILE,
-          acceptedLines: '8',
-          removedLines: '3',
-          isAgentic: true,
-          initiationMethod: InitiationMethod.COMMAND,
-        }),
-      );
+      // Should return without error even though Code Assist is no longer supported
+      await expect(
+        recordToolCallInteractions({} as Config, toolCalls),
+      ).resolves.toBeUndefined();
     });
 
-    it('should include language in interaction if file_path is present', async () => {
-      const toolCalls: CompletedToolCall[] = [
-        {
-          request: {
-            name: 'replace',
-            args: {
-              file_path: 'test.ts',
-              old_string: 'old',
-              new_string: 'new',
-            },
-            callId: 'call-1',
-            isClientInitiated: false,
-            prompt_id: 'p1',
-            traceId: 'trace-1',
-          },
-          response: {
-            resultDisplay: {
-              diffStat: {
-                model_added_lines: 5,
-                model_removed_lines: 3,
-              },
-            },
-          },
-          outcome: ToolConfirmationOutcome.ProceedOnce,
-          status: 'success',
-        } as unknown as CompletedToolCall,
-      ];
-
-      await recordToolCallInteractions({} as Config, toolCalls);
-
-      expect(mockServer.recordConversationInteraction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          language: 'typescript',
-        }),
-      );
-    });
-
-    it('should include language in interaction if write_file is used', async () => {
-      const toolCalls: CompletedToolCall[] = [
-        {
-          request: {
-            name: 'write_file',
-            args: { file_path: 'test.py', content: 'test' },
-            callId: 'call-1',
-            isClientInitiated: false,
-            prompt_id: 'p1',
-            traceId: 'trace-1',
-          },
-          response: {
-            resultDisplay: {
-              diffStat: {
-                model_added_lines: 5,
-                model_removed_lines: 3,
-              },
-            },
-          },
-          outcome: ToolConfirmationOutcome.ProceedOnce,
-          status: 'success',
-        } as unknown as CompletedToolCall,
-      ];
-
-      await recordToolCallInteractions({} as Config, toolCalls);
-
-      expect(mockServer.recordConversationInteraction).toHaveBeenCalledWith(
-        expect.objectContaining({
-          language: 'python',
-        }),
-      );
-    });
-
-    it('should not record interaction for other accepted tools', async () => {
-      const toolCalls: CompletedToolCall[] = [
-        {
-          request: {
-            name: 'read_file', // NOT in EDIT_TOOL_NAMES
-            args: {},
-            callId: 'call-2',
-            isClientInitiated: false,
-            prompt_id: 'p2',
-            traceId: 'trace-2',
-          },
-          outcome: ToolConfirmationOutcome.ProceedOnce,
-          status: 'success',
-        } as unknown as CompletedToolCall,
-      ];
-
-      await recordToolCallInteractions({} as Config, toolCalls);
-
-      expect(mockServer.recordConversationInteraction).not.toHaveBeenCalled();
-    });
-
-    it('should not record interaction for cancelled status', async () => {
-      const toolCalls: CompletedToolCall[] = [
-        {
-          request: {
-            name: 'replace',
-            args: {},
-            callId: 'call-3',
-            isClientInitiated: false,
-            prompt_id: 'p3',
-            traceId: 'trace-3',
-          },
-          status: 'cancelled',
-          response: {} as unknown as ToolCallResponseInfo,
-          tool: {} as unknown as AnyDeclarativeTool,
-          invocation: {} as unknown as AnyToolInvocation,
-        } as CompletedToolCall,
-      ];
-
-      await recordToolCallInteractions({} as Config, toolCalls);
-
-      expect(mockServer.recordConversationInteraction).not.toHaveBeenCalled();
-    });
-
-    it('should not record interaction for error status', async () => {
-      const toolCalls: CompletedToolCall[] = [
-        {
-          request: {
-            name: 'replace',
-            args: {},
-            callId: 'call-4',
-            isClientInitiated: false,
-            prompt_id: 'p4',
-            traceId: 'trace-4',
-          },
-          status: 'error',
-          response: {
-            error: new Error('fail'),
-          } as unknown as ToolCallResponseInfo,
-        } as CompletedToolCall,
-      ];
-
-      await recordToolCallInteractions({} as Config, toolCalls);
-
-      expect(mockServer.recordConversationInteraction).not.toHaveBeenCalled();
-    });
-
-    it('should not record interaction if tool calls are mixed or not 100% accepted', async () => {
-      // Logic: traceId && acceptedToolCalls / toolCalls.length >= 1
-      const toolCalls: CompletedToolCall[] = [
-        {
-          request: {
-            name: 't1',
-            args: {},
-            callId: 'c1',
-            isClientInitiated: false,
-            prompt_id: 'p1',
-            traceId: 't1',
-          },
-          outcome: ToolConfirmationOutcome.ProceedOnce,
-          status: 'success',
-        },
-        {
-          request: {
-            name: 't2',
-            args: {},
-            callId: 'c2',
-            isClientInitiated: false,
-            prompt_id: 'p1',
-            traceId: 't1',
-          },
-          outcome: ToolConfirmationOutcome.Cancel, // Rejected
-          status: 'success',
-        },
-      ] as unknown as CompletedToolCall[];
-
-      await recordToolCallInteractions({} as Config, toolCalls);
-
-      expect(mockServer.recordConversationInteraction).not.toHaveBeenCalled();
+    it('should handle empty tool calls', async () => {
+      await expect(
+        recordToolCallInteractions({} as Config, []),
+      ).resolves.toBeUndefined();
     });
   });
 });

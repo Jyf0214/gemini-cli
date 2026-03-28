@@ -19,7 +19,6 @@ import {
   DEFAULT_GEMINI_MODEL,
   DEFAULT_GEMINI_MODEL_AUTO,
   PREVIEW_GEMINI_MODEL_AUTO,
-  PREVIEW_GEMINI_3_1_MODEL,
   PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL,
 } from '../../config/models.js';
 import { promptIdContext } from '../../utils/promptIdContext.js';
@@ -62,11 +61,10 @@ describe('ClassifierStrategy', () => {
       getGemini31FlashLiteLaunched: vi.fn().mockResolvedValue(false),
       getUseCustomToolModel: vi.fn().mockImplementation(async () => {
         const launched = await mockConfig.getGemini31Launched();
-        const authType = mockConfig.getContentGeneratorConfig().authType;
-        return launched && authType === AuthType.USE_GEMINI;
+        return launched;
       }),
       getContentGeneratorConfig: vi.fn().mockReturnValue({
-        authType: AuthType.LOGIN_WITH_GOOGLE,
+        authType: AuthType.OPENAI_COMPATIBLE,
       }),
     } as unknown as Config;
     mockBaseLlmClient = {
@@ -384,7 +382,7 @@ describe('ClassifierStrategy', () => {
   });
 
   describe('Gemini 3.1 and Custom Tools Routing', () => {
-    it('should route to PREVIEW_GEMINI_3_1_MODEL when Gemini 3.1 is launched', async () => {
+    it('should route to PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL when Gemini 3.1 is launched', async () => {
       vi.mocked(mockConfig.getGemini31Launched).mockResolvedValue(true);
       vi.mocked(mockConfig.getModel).mockReturnValue(PREVIEW_GEMINI_MODEL_AUTO);
       const mockApiResponse = {
@@ -402,15 +400,12 @@ describe('ClassifierStrategy', () => {
         mockLocalLiteRtLmClient,
       );
 
-      expect(decision?.model).toBe(PREVIEW_GEMINI_3_1_MODEL);
+      expect(decision?.model).toBe(PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL);
     });
 
-    it('should route to PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL when Gemini 3.1 is launched and auth is USE_GEMINI', async () => {
+    it('should route to PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL when Gemini 3.1 is launched and custom tools model is enabled', async () => {
       vi.mocked(mockConfig.getGemini31Launched).mockResolvedValue(true);
       vi.mocked(mockConfig.getModel).mockReturnValue(PREVIEW_GEMINI_MODEL_AUTO);
-      vi.mocked(mockConfig.getContentGeneratorConfig).mockReturnValue({
-        authType: AuthType.USE_GEMINI,
-      });
       const mockApiResponse = {
         reasoning: 'Complex task',
         model_choice: 'pro',

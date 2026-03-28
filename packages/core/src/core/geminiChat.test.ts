@@ -1909,7 +1909,7 @@ describe('GeminiChat', () => {
     });
 
     it('should call handleFallback with the specific failed model and retry if handler returns true', async () => {
-      const authType = AuthType.LOGIN_WITH_GOOGLE;
+      const authType = AuthType.OPENAI_COMPATIBLE;
       vi.mocked(mockConfig.getContentGeneratorConfig).mockReturnValue({
         authType,
       });
@@ -2298,7 +2298,7 @@ describe('GeminiChat', () => {
           await apiCall();
         } catch (e) {
           if (options?.onPersistent429) {
-            await options.onPersistent429(AuthType.LOGIN_WITH_GOOGLE, e);
+            await options.onPersistent429(AuthType.OPENAI_COMPATIBLE, e);
           }
           throw e; // throw anyway to end test
         }

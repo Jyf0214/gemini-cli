@@ -12,7 +12,6 @@ import type { BaseLlmClient } from '../../core/baseLlmClient.js';
 import {
   PREVIEW_GEMINI_FLASH_MODEL,
   PREVIEW_GEMINI_MODEL,
-  PREVIEW_GEMINI_3_1_MODEL,
   PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL,
   PREVIEW_GEMINI_MODEL_AUTO,
   DEFAULT_GEMINI_MODEL_AUTO,
@@ -62,11 +61,10 @@ describe('NumericalClassifierStrategy', () => {
       getGemini31FlashLiteLaunched: vi.fn().mockResolvedValue(false),
       getUseCustomToolModel: vi.fn().mockImplementation(async () => {
         const launched = await mockConfig.getGemini31Launched();
-        const authType = mockConfig.getContentGeneratorConfig().authType;
-        return launched && authType === AuthType.USE_GEMINI;
+        return launched;
       }),
       getContentGeneratorConfig: vi.fn().mockReturnValue({
-        authType: AuthType.LOGIN_WITH_GOOGLE,
+        authType: AuthType.OPENAI_COMPATIBLE,
       }),
     } as unknown as Config;
     mockBaseLlmClient = {
@@ -539,7 +537,7 @@ describe('NumericalClassifierStrategy', () => {
   });
 
   describe('Gemini 3.1 and Custom Tools Routing', () => {
-    it('should route to PREVIEW_GEMINI_3_1_MODEL when Gemini 3.1 is launched', async () => {
+    it('should route to PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL when Gemini 3.1 is launched', async () => {
       vi.mocked(mockConfig.getGemini31Launched).mockResolvedValue(true);
       const mockApiResponse = {
         complexity_reasoning: 'Complex task',
@@ -556,13 +554,10 @@ describe('NumericalClassifierStrategy', () => {
         mockLocalLiteRtLmClient,
       );
 
-      expect(decision?.model).toBe(PREVIEW_GEMINI_3_1_MODEL);
+      expect(decision?.model).toBe(PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL);
     });
-    it('should route to PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL when Gemini 3.1 is launched and auth is USE_GEMINI', async () => {
+    it('should route to PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL when Gemini 3.1 is launched and custom tools model is enabled', async () => {
       vi.mocked(mockConfig.getGemini31Launched).mockResolvedValue(true);
-      vi.mocked(mockConfig.getContentGeneratorConfig).mockReturnValue({
-        authType: AuthType.USE_GEMINI,
-      });
       const mockApiResponse = {
         complexity_reasoning: 'Complex task',
         complexity_score: 95,
@@ -581,10 +576,10 @@ describe('NumericalClassifierStrategy', () => {
       expect(decision?.model).toBe(PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL);
     });
 
-    it('should NOT route to custom tools model when auth is USE_VERTEX_AI', async () => {
+    it('should route to PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL when Gemini 3.1 is launched with OPENAI_COMPATIBLE auth', async () => {
       vi.mocked(mockConfig.getGemini31Launched).mockResolvedValue(true);
       vi.mocked(mockConfig.getContentGeneratorConfig).mockReturnValue({
-        authType: AuthType.USE_VERTEX_AI,
+        authType: AuthType.OPENAI_COMPATIBLE,
       });
       const mockApiResponse = {
         complexity_reasoning: 'Complex task',
@@ -601,7 +596,7 @@ describe('NumericalClassifierStrategy', () => {
         mockLocalLiteRtLmClient,
       );
 
-      expect(decision?.model).toBe(PREVIEW_GEMINI_3_1_MODEL);
+      expect(decision?.model).toBe(PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL);
     });
   });
 });

@@ -58,7 +58,7 @@ vi.mock('../utils/debugLogger.js', () => ({
 
 const MOCK_PRO_MODEL = DEFAULT_GEMINI_MODEL;
 const FALLBACK_MODEL = DEFAULT_GEMINI_FLASH_MODEL;
-const AUTH_OAUTH = AuthType.LOGIN_WITH_GOOGLE;
+const AUTH_OAUTH = AuthType.OPENAI_COMPATIBLE;
 
 const createMockConfig = (overrides: Partial<Config> = {}): Config =>
   ({

@@ -95,12 +95,12 @@ describe('Retry Utility Fallback Integration', () => {
       initialDelayMs: 1,
       maxDelayMs: 10,
       onPersistent429: mockPersistent429Callback,
-      authType: AuthType.LOGIN_WITH_GOOGLE,
+      authType: AuthType.OPENAI_COMPATIBLE,
     });
 
     expect(fallbackCalled).toBe(true);
     expect(mockPersistent429Callback).toHaveBeenCalledWith(
-      AuthType.LOGIN_WITH_GOOGLE,
+      AuthType.OPENAI_COMPATIBLE,
       expect.any(TerminalQuotaError),
     );
     expect(result).toBe('success after fallback');
@@ -127,7 +127,7 @@ describe('Retry Utility Fallback Integration', () => {
       initialDelayMs: 1,
       maxDelayMs: 10,
       onPersistent429: mockPersistent429Callback,
-      authType: AuthType.LOGIN_WITH_GOOGLE,
+      authType: AuthType.OPENAI_COMPATIBLE,
     });
 
     await expect(promise).rejects.toThrow('Simulated 499 error');
@@ -149,7 +149,7 @@ describe('Retry Utility Fallback Integration', () => {
       initialDelayMs: 1,
       maxDelayMs: 10,
       onPersistent429: fallbackCallback,
-      authType: AuthType.USE_GEMINI, // API key auth type
+      authType: AuthType.OPENAI_COMPATIBLE, // API key auth type
     });
 
     await expect(promise).rejects.toThrow('Daily limit');
