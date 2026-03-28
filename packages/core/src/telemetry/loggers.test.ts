@@ -909,7 +909,6 @@ describe('loggers', () => {
           'gen_ai.provider.name': 'gcp.gen_ai',
           'gen_ai.output.type': 'json',
           'gen_ai.request.stop_sequences': ['end'],
-          'gen_ai.request.stop_sequences': ['end'],
           'gen_ai.system_instructions': JSON.stringify([
             { type: 'text', content: 'be helpful' },
           ]),

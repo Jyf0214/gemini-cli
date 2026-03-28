@@ -2624,10 +2624,6 @@ describe('Hooks configuration', () => {
 
 describe('Config Quota & Preview Model Access', () => {
   let config: Config;
-  let mockCodeAssistServer: {
-    projectId: string;
-    retrieveUserQuota: Mock;
-  };
 
   const baseParams: ConfigParameters = {
     cwd: '/tmp',
@@ -2648,144 +2644,12 @@ describe('Config Quota & Preview Model Access', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCodeAssistServer = {
-      projectId: 'test-project',
-      retrieveUserQuota: vi.fn(),
-    };
-    vi.mocked(getCodeAssistServer).mockReturnValue(
-      mockCodeAssistServer as Partial<CodeAssistServer> as CodeAssistServer,
-    );
+    vi.mocked(getCodeAssistServer).mockReturnValue(undefined);
     config = new Config(baseParams);
   });
 
   describe('refreshUserQuota', () => {
-    it('should update hasAccessToPreviewModel to true if quota includes preview model', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockResolvedValue({
-        buckets: [
-          {
-            modelId: 'gemini-3-pro-preview',
-            remainingAmount: '100',
-            remainingFraction: 1.0,
-          },
-        ],
-      });
-
-      await config.refreshUserQuota();
-      expect(config.getHasAccessToPreviewModel()).toBe(true);
-    });
-
-    it('should update hasAccessToPreviewModel to true if quota includes Gemini 3.1 preview model', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockResolvedValue({
-        buckets: [
-          {
-            modelId: 'gemini-3.1-pro-preview',
-            remainingAmount: '100',
-            remainingFraction: 1.0,
-          },
-        ],
-      });
-
-      await config.refreshUserQuota();
-      expect(config.getHasAccessToPreviewModel()).toBe(true);
-    });
-
-    it('should update hasAccessToPreviewModel to false if quota does not include preview model', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockResolvedValue({
-        buckets: [
-          {
-            modelId: 'some-other-model',
-            remainingAmount: '10',
-            remainingFraction: 0.1,
-          },
-        ],
-      });
-
-      await config.refreshUserQuota();
-      expect(config.getHasAccessToPreviewModel()).toBe(false);
-    });
-
-    it('should calculate pooled quota correctly for auto models', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockResolvedValue({
-        buckets: [
-          {
-            modelId: 'gemini-2.5-pro',
-            remainingAmount: '10',
-            remainingFraction: 0.2,
-          },
-          {
-            modelId: 'gemini-2.5-flash',
-            remainingAmount: '80',
-            remainingFraction: 0.8,
-          },
-        ],
-      });
-
-      config.setModel('auto-gemini-2.5');
-      await config.refreshUserQuota();
-
-      const pooled = (
-        config as Partial<Config> as {
-          getPooledQuota: () => {
-            remaining?: number;
-            limit?: number;
-            resetTime?: string;
-          };
-        }
-      ).getPooledQuota();
-      // Pro: 10 / 0.2 = 50 total.
-      // Flash: 80 / 0.8 = 100 total.
-      // Pooled: (10 + 80) / (50 + 100) = 90 / 150 = 0.6
-      expect(pooled?.remaining).toBe(90);
-      expect(pooled?.limit).toBe(150);
-      expect((pooled?.remaining ?? 0) / (pooled?.limit ?? 1)).toBeCloseTo(0.6);
-    });
-
-    it('should return undefined pooled quota for non-auto models', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockResolvedValue({
-        buckets: [
-          {
-            modelId: 'gemini-2.5-pro',
-            remainingAmount: '10',
-            remainingFraction: 0.2,
-          },
-        ],
-      });
-
-      config.setModel('gemini-2.5-pro');
-      await config.refreshUserQuota();
-
-      expect(
-        (
-          config as Partial<Config> as {
-            getPooledQuota: () => {
-              remaining?: number;
-              limit?: number;
-              resetTime?: string;
-            };
-          }
-        ).getPooledQuota(),
-      ).toEqual({});
-    });
-
-    it('should update hasAccessToPreviewModel to false if buckets are undefined', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockResolvedValue({});
-
-      await config.refreshUserQuota();
-      expect(config.getHasAccessToPreviewModel()).toBe(false);
-    });
-
-    it('should return undefined and not update if codeAssistServer is missing', async () => {
-      vi.mocked(getCodeAssistServer).mockReturnValue(undefined);
-      const result = await config.refreshUserQuota();
-      expect(result).toBeUndefined();
-      // Never set => stays null (unknown); getter returns true so UI shows preview
-      expect(config.getHasAccessToPreviewModel()).toBe(true);
-    });
-
-    it('should return undefined if retrieveUserQuota fails', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockRejectedValue(
-        new Error('Network error'),
-      );
+    it('should return undefined since Code Assist auth is no longer supported', async () => {
       const result = await config.refreshUserQuota();
       expect(result).toBeUndefined();
       // Never set => stays null (unknown); getter returns true so UI shows preview
@@ -2803,60 +2667,9 @@ describe('Config Quota & Preview Model Access', () => {
       vi.useRealTimers();
     });
 
-    it('should refresh quota if stale', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockResolvedValue({
-        buckets: [],
-      });
-
-      // First call to initialize lastQuotaFetchTime
-      await config.refreshUserQuota();
-      expect(mockCodeAssistServer.retrieveUserQuota).toHaveBeenCalledTimes(1);
-
-      // Advance time by 31 seconds (default TTL is 30s)
-      vi.setSystemTime(Date.now() + 31_000);
-
-      await config.refreshUserQuotaIfStale();
-      expect(mockCodeAssistServer.retrieveUserQuota).toHaveBeenCalledTimes(2);
-    });
-
-    it('should not refresh quota if fresh', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockResolvedValue({
-        buckets: [],
-      });
-
-      // First call
-      await config.refreshUserQuota();
-      expect(mockCodeAssistServer.retrieveUserQuota).toHaveBeenCalledTimes(1);
-
-      // Advance time by only 10 seconds
-      vi.setSystemTime(Date.now() + 10_000);
-
-      await config.refreshUserQuotaIfStale();
-      expect(mockCodeAssistServer.retrieveUserQuota).toHaveBeenCalledTimes(1);
-    });
-
-    it('should respect custom staleMs', async () => {
-      mockCodeAssistServer.retrieveUserQuota.mockResolvedValue({
-        buckets: [],
-      });
-
-      // First call
-      await config.refreshUserQuota();
-      expect(mockCodeAssistServer.retrieveUserQuota).toHaveBeenCalledTimes(1);
-
-      // Advance time by 5 seconds
-      vi.setSystemTime(Date.now() + 5_000);
-
-      // Refresh with 2s staleMs -> should refresh
-      await config.refreshUserQuotaIfStale(2_000);
-      expect(mockCodeAssistServer.retrieveUserQuota).toHaveBeenCalledTimes(2);
-
-      // Advance by another 5 seconds
-      vi.setSystemTime(Date.now() + 5_000);
-
-      // Refresh with 10s staleMs -> should NOT refresh
-      await config.refreshUserQuotaIfStale(10_000);
-      expect(mockCodeAssistServer.retrieveUserQuota).toHaveBeenCalledTimes(2);
+    it('should return undefined since Code Assist auth is no longer supported', async () => {
+      const result = await config.refreshUserQuotaIfStale();
+      expect(result).toBeUndefined();
     });
   });
 
