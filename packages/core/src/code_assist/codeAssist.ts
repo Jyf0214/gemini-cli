@@ -4,52 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AuthType, type ContentGenerator } from '../core/contentGenerator.js';
-import { getOauthClient } from './oauth2.js';
-import { setupUser } from './setup.js';
-import { CodeAssistServer, type HttpOptions } from './server.js';
+/**
+ * 注意：此模块已不再使用，当前仅支持 OpenAI 兼容端点认证
+ * 保留此文件仅为兼容性考虑
+ */
+
+import { type ContentGenerator } from '../core/contentGenerator.js';
 import type { Config } from '../config/config.js';
-import { LoggingContentGenerator } from '../core/loggingContentGenerator.js';
 
 export async function createCodeAssistContentGenerator(
-  httpOptions: HttpOptions,
-  authType: AuthType,
-  config: Config,
-  sessionId?: string,
+  _httpOptions: unknown,
+  _authType: string,
+  _config: Config,
+  _sessionId?: string,
 ): Promise<ContentGenerator> {
-  if (
-    authType === AuthType.LOGIN_WITH_GOOGLE ||
-    authType === AuthType.COMPUTE_ADC
-  ) {
-    const authClient = await getOauthClient(authType, config);
-    const userData = await setupUser(authClient, config, httpOptions);
-    return new CodeAssistServer(
-      authClient,
-      userData.projectId,
-      httpOptions,
-      sessionId,
-      userData.userTier,
-      userData.userTierName,
-      userData.paidTier,
-      config,
-    );
-  }
-
-  throw new Error(`Unsupported authType: ${authType}`);
+  throw new Error('Code Assist 认证方式已不再支持，当前仅支持 OpenAI 兼容端点');
 }
 
-export function getCodeAssistServer(
-  config: Config,
-): CodeAssistServer | undefined {
-  let server = config.getContentGenerator();
-
-  // Unwrap LoggingContentGenerator if present
-  if (server instanceof LoggingContentGenerator) {
-    server = server.getWrapped();
-  }
-
-  if (!(server instanceof CodeAssistServer)) {
-    return undefined;
-  }
-  return server;
+export function getCodeAssistServer(_config: Config): undefined {
+  return undefined;
 }
