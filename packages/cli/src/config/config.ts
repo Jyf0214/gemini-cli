@@ -46,6 +46,7 @@ import {
   type HookEventName,
   type OutputFormat,
   detectIdeFromEnv,
+  AuthType,
 } from '@google/gemini-cli-core';
 import {
   type Settings,
@@ -797,8 +798,16 @@ export async function loadCliConfig(
   );
 
   const defaultModel = PREVIEW_GEMINI_MODEL_AUTO;
-  const specifiedModel =
+  let specifiedModel =
     argv.model || process.env['GEMINI_MODEL'] || settings.model?.name;
+
+  // For OpenAI Compatible auth, use the model from auth settings
+  if (
+    !specifiedModel &&
+    settings.security?.auth?.selectedType === AuthType.OPENAI_COMPATIBLE
+  ) {
+    specifiedModel = settings.security?.auth?.openaiModel;
+  }
 
   const resolvedModel =
     specifiedModel === GEMINI_MODEL_ALIAS_AUTO

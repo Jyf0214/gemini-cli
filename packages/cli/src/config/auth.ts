@@ -42,5 +42,17 @@ export function validateAuthMethod(authMethod: string): string | null {
     return null;
   }
 
+  if (authMethod === AuthType.OPENAI_COMPATIBLE) {
+    const settings = loadSettings().merged;
+    const endpoint = settings.security?.auth?.openaiEndpoint;
+    if (!endpoint) {
+      return (
+        'When using OpenAI Compatible API, you must configure the endpoint URL.\n' +
+        'Please run the auth flow again to provide the endpoint, API key, and model.'
+      );
+    }
+    return null;
+  }
+
   return 'Invalid auth method selected.';
 }

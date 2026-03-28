@@ -97,6 +97,22 @@ describe('useAuth', () => {
       expect(error).toBeNull();
     });
 
+    it('should return null if authType is OPENAI_COMPATIBLE', () => {
+      const settings = {
+        merged: {
+          security: {
+            auth: {},
+          },
+        },
+      } as LoadedSettings;
+
+      const error = validateAuthMethodWithSettings(
+        AuthType.OPENAI_COMPATIBLE,
+        settings,
+      );
+      expect(error).toBeNull();
+    });
+
     it('should call validateAuthMethod for other auth types', () => {
       const settings = {
         merged: {
@@ -204,6 +220,28 @@ describe('useAuth', () => {
       });
 
       expect(result.current.authState).toBe(AuthState.AwaitingApiKeyInput);
+    });
+
+    it('should transition to AwaitingOpenAICompatibleAuthInput if OPENAI_COMPATIBLE and no key found', async () => {
+      let deferredLoadKey: { resolve: (k: string | null) => void };
+      mockLoadApiKey.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            deferredLoadKey = { resolve };
+          }),
+      );
+
+      const { result } = await renderHook(() =>
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
+      );
+
+      await act(async () => {
+        deferredLoadKey.resolve(null);
+      });
+
+      expect(result.current.authState).toBe(
+        AuthState.AwaitingOpenAICompatibleAuthInput,
+      );
     });
 
     it('should authenticate if USE_GEMINI and key is found', async () => {

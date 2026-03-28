@@ -243,12 +243,23 @@ describe('AuthDialog', () => {
       unmount();
     });
 
-    it('sets auth context with empty object for other auth types', async () => {
+    it('sets auth context with empty object for USE_GEMINI', async () => {
       mockedValidateAuthMethod.mockReturnValue(null);
       const { unmount } = await renderWithProviders(<AuthDialog {...props} />);
       const { onSelect: handleAuthSelect } =
         mockedRadioButtonSelect.mock.calls[0][0];
       await handleAuthSelect(AuthType.USE_GEMINI);
+
+      expect(props.setAuthContext).toHaveBeenCalledWith({});
+      unmount();
+    });
+
+    it('sets auth context with empty object for OPENAI_COMPATIBLE', async () => {
+      mockedValidateAuthMethod.mockReturnValue(null);
+      const { unmount } = await renderWithProviders(<AuthDialog {...props} />);
+      const { onSelect: handleAuthSelect } =
+        mockedRadioButtonSelect.mock.calls[0][0];
+      await handleAuthSelect(AuthType.OPENAI_COMPATIBLE);
 
       expect(props.setAuthContext).toHaveBeenCalledWith({});
       unmount();
@@ -282,6 +293,19 @@ describe('AuthDialog', () => {
 
       expect(props.setAuthState).toHaveBeenCalledWith(
         AuthState.AwaitingApiKeyInput,
+      );
+      unmount();
+    });
+
+    it('shows OpenAI compatible auth dialog when OPENAI_COMPATIBLE is selected', async () => {
+      mockedValidateAuthMethod.mockReturnValue(null);
+      const { unmount } = await renderWithProviders(<AuthDialog {...props} />);
+      const { onSelect: handleAuthSelect } =
+        mockedRadioButtonSelect.mock.calls[0][0];
+      await handleAuthSelect(AuthType.OPENAI_COMPATIBLE);
+
+      expect(props.setAuthState).toHaveBeenCalledWith(
+        AuthState.AwaitingOpenAICompatibleAuthInput,
       );
       unmount();
     });

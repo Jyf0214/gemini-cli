@@ -839,19 +839,24 @@ Logging in with Google... Restarting Gemini CLI to continue.
         }
 
         await saveApiKey(apiKey);
-        await settings.setValue(
+        settings.setValue(
           SettingScope.User,
-          'security.auth.openAiCompatibleEndpoint',
+          'security.auth.openaiEndpoint',
           endpoint,
         );
-        await settings.setValue(
+        settings.setValue(
           SettingScope.User,
-          'security.auth.openAiCompatibleModel',
+          'security.auth.openaiModel',
           model,
         );
+        settings.setValue(
+          SettingScope.User,
+          'security.auth.selectedType',
+          AuthType.OPENAI_COMPATIBLE,
+        );
         setOpenAiCompatibleDefaults({ endpoint, apiKey, model });
-        await reloadApiKey();
-        await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
+        await config.refreshAuth(AuthType.OPENAI_COMPATIBLE, apiKey, endpoint);
+        config.setModel(model);
         setAuthState(AuthState.Authenticated);
       } catch (e) {
         onAuthError(
@@ -2392,7 +2397,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
     }),
     [
       isThemeDialogOpen,
-
+      openAiCompatibleDefaults,
       themeError,
       isAuthenticating,
       isConfigInitialized,
