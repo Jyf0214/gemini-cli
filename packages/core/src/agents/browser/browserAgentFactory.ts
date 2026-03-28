@@ -5,18 +5,17 @@
  */
 
 /**
- * @fileoverview Factory for creating browser agent definitions with configured tools.
+ * @fileoverview 用于创建带有配置工具的浏览器代理定义的工厂。
  *
- * This factory is called when the browser agent is invoked via delegate_to_agent.
- * It creates a BrowserManager, connects the isolated MCP client, wraps tools,
- * and returns a fully configured LocalAgentDefinition.
+ * 当通过 delegate_to_agent 调用浏览器代理时，会调用此工厂。
+ * 它创建 BrowserManager，连接隔离的 MCP 客户端，包装工具，
+ * 并返回完全配置的 LocalAgentDefinition。
  *
- * IMPORTANT: The MCP tools are ONLY available to the browser agent's isolated
- * registry. They are NOT registered in the main agent's ToolRegistry.
+ * 重要：MCP 工具仅在浏览器代理的隔离注册表中可用。
+ * 它们不会在主代理的 ToolRegistry 中注册。
  */
 
 import type { Config } from '../../config/config.js';
-import { AuthType } from '../../core/contentGenerator.js';
 import type { LocalAgentDefinition } from '../types.js';
 import type { MessageBus } from '../../confirmation-bus/message-bus.js';
 import type { AnyDeclarativeTool } from '../../tools/tools.js';
@@ -39,16 +38,15 @@ import {
 } from '../../policy/types.js';
 
 /**
- * Creates a browser agent definition with MCP tools configured.
+ * 创建带有配置的 MCP 工具的浏览器代理定义。
  *
- * This is called when the browser agent is invoked via delegate_to_agent.
- * The MCP client is created fresh and tools are wrapped for the agent's
- * isolated registry - NOT registered with the main agent.
+ * 当通过 delegate_to_agent 调用浏览器代理时调用此函数。
+ * MCP 客户端是新建的，工具被包装到代理的隔离注册表中 - 不会注册到主代理。
  *
- * @param config Runtime configuration
- * @param messageBus Message bus for tool invocations
- * @param printOutput Optional callback for progress messages
- * @returns Fully configured LocalAgentDefinition with MCP tools
+ * @param config 运行时配置
+ * @param messageBus 用于工具调用的消息总线
+ * @param printOutput 可选的进度消息回调
+ * @returns 包含 MCP 工具的完全配置的 LocalAgentDefinition
  */
 export async function createBrowserAgentDefinition(
   config: Config,
@@ -58,37 +56,35 @@ export async function createBrowserAgentDefinition(
   definition: LocalAgentDefinition<typeof BrowserTaskResultSchema>;
   browserManager: BrowserManager;
 }> {
-  debugLogger.log(
-    'Creating browser agent definition with isolated MCP tools...',
-  );
+  debugLogger.log('正在创建带有隔离 MCP 工具的浏览器代理定义...');
 
-  // Get or create browser manager singleton for this session mode/profile
+  // 获取或创建此会话模式/配置文件的浏览器管理器单例
   const browserManager = BrowserManager.getInstance(config);
   await browserManager.ensureConnection();
 
   if (printOutput) {
-    printOutput('Browser connected with isolated MCP client.');
+    printOutput('浏览器已连接，使用隔离的 MCP 客户端。');
   }
 
-  // Determine if input blocker should be active (non-headless + enabled)
+  // 确定输入阻止器是否应处于活动状态（非无头模式 + 启用）
   const shouldDisableInput = config.shouldDisableBrowserUserInput();
-  // Inject automation overlay and input blocker if not in headless mode
+  // 如果不在无头模式下，注入自动化覆盖层和输入阻止器
   const browserConfig = config.getBrowserAgentConfig();
   if (!browserConfig?.customConfig?.headless) {
     if (printOutput) {
-      printOutput('Injecting automation overlay...');
+      printOutput('正在注入自动化覆盖层...');
     }
     await injectAutomationOverlay(browserManager);
     if (shouldDisableInput) {
       if (printOutput) {
-        printOutput('Injecting input blocker...');
+        printOutput('正在注入输入阻止器...');
       }
       await injectInputBlocker(browserManager);
     }
   }
 
-  // Create declarative tools from dynamically discovered MCP tools
-  // These tools dispatch to browserManager's isolated client
+  // 从动态发现的 MCP 工具创建声明性工具
+  // 这些工具分派到 browserManager 的隔离客户端
   const mcpTools = await createMcpDeclarativeTools(
     browserManager,
     messageBus,
@@ -97,8 +93,7 @@ export async function createBrowserAgentDefinition(
   );
   const availableToolNames = mcpTools.map((t) => t.name);
 
-  // Register high-priority policy rules for sensitive actions which is not
-  // able to be overwrite by YOLO mode.
+  // 注册高优先级策略规则以防止 YOLO 模式覆盖的敏感操作
   const policyEngine = config.getPolicyEngine();
 
   if (policyEngine) {
@@ -106,8 +101,7 @@ export async function createBrowserAgentDefinition(
 
     const restrictedTools = ['fill', 'fill_form'];
 
-    // ASK_USER for upload_file and evaluate_script when sensitive action
-    // need confirmation.
+    // 当需要确认敏感操作时，对 upload_file 和 evaluate_script 进行 ASK_USER 确认
     if (browserConfig.customConfig.confirmSensitiveActions) {
       restrictedTools.push('upload_file', 'evaluate_script');
     }
@@ -119,7 +113,7 @@ export async function createBrowserAgentDefinition(
       }
     }
 
-    // Reduce noise for read-only tools in default mode
+    // 在默认模式下减少只读工具的噪音
     const readOnlyTools = (await browserManager.getDiscoveredTools())
       .filter((t) => !!t.annotations?.readOnlyHint)
       .map((t) => t.name);
@@ -140,7 +134,7 @@ export async function createBrowserAgentDefinition(
       toolName: `${MCP_TOOL_PREFIX}${BROWSER_AGENT_NAME}_${toolName}`,
       decision: PolicyDecision.ASK_USER,
       priority: 999,
-      source: 'BrowserAgent (Sensitive Actions)',
+      source: '浏览器代理（敏感操作）',
       mcpName: BROWSER_AGENT_NAME,
     };
   }
@@ -150,12 +144,12 @@ export async function createBrowserAgentDefinition(
       toolName: `${MCP_TOOL_PREFIX}${BROWSER_AGENT_NAME}_${toolName}`,
       decision: PolicyDecision.ALLOW,
       priority: PRIORITY_SUBAGENT_TOOL,
-      source: 'BrowserAgent (Read-Only)',
+      source: '浏览器代理（只读）',
       mcpName: BROWSER_AGENT_NAME,
     };
   }
 
-  // Check if policy rule the same in all the attributes that we care about
+  // 检查策略规则在我们关心的所有属性上是否相同
   function isRuleEqual(rule1: PolicyRule, rule2: PolicyRule) {
     return (
       rule1.toolName === rule2.toolName &&
@@ -165,7 +159,7 @@ export async function createBrowserAgentDefinition(
     );
   }
 
-  // Validate required semantic tools are available
+  // 验证必需的语义工具是否可用
   const requiredSemanticTools = [
     'click',
     'fill',
@@ -177,38 +171,30 @@ export async function createBrowserAgentDefinition(
   );
   if (missingSemanticTools.length > 0) {
     debugLogger.warn(
-      `Semantic tools missing (${missingSemanticTools.join(', ')}). ` +
-        'Some browser interactions may not work correctly.',
+      `语义工具缺失 (${missingSemanticTools.join(', ')}). ` +
+        '某些浏览器交互可能无法正常工作。',
     );
   }
 
-  // Only click_at is strictly required — text input can use press_key or fill.
+  // 只有 click_at 是严格必需的 — 文本输入可以使用 press_key 或 fill
   const requiredVisualTools = ['click_at'];
   const missingVisualTools = requiredVisualTools.filter(
     (t) => !availableToolNames.includes(t),
   );
 
-  // Check whether vision can be enabled; returns undefined if all gates pass.
+  // 检查是否可以启用视觉功能；如果所有检查都通过则返回 undefined
   function getVisionDisabledReason(): string | undefined {
     const browserConfig = config.getBrowserAgentConfig();
     if (!browserConfig.customConfig.visualModel) {
-      return 'No visualModel configured.';
+      return '未配置 visualModel。';
     }
     if (missingVisualTools.length > 0) {
       return (
-        `Visual tools missing (${missingVisualTools.join(', ')}). ` +
-        `The installed chrome-devtools-mcp version may be too old.`
+        `视觉工具缺失 (${missingVisualTools.join(', ')}). ` +
+        `安装的 chrome-devtools-mcp 版本可能过旧。`
       );
     }
-    const authType = config.getContentGeneratorConfig()?.authType;
-    const blockedAuthTypes = new Set([
-      AuthType.LOGIN_WITH_GOOGLE,
-      AuthType.LEGACY_CLOUD_SHELL,
-      AuthType.COMPUTE_ADC,
-    ]);
-    if (authType && blockedAuthTypes.has(authType)) {
-      return 'Visual agent model not available for current auth type.';
-    }
+    // 当前仅支持 OPENAI_COMPATIBLE 认证类型，无需额外检查
     return undefined;
   }
 
@@ -216,7 +202,7 @@ export async function createBrowserAgentDefinition(
   const visionDisabledReason = getVisionDisabledReason();
 
   if (visionDisabledReason) {
-    debugLogger.log(`Vision disabled: ${visionDisabledReason}`);
+    debugLogger.log(`视觉功能已禁用: ${visionDisabledReason}`);
   } else {
     allTools.push(
       createAnalyzeScreenshotTool(browserManager, config, messageBus),
@@ -224,12 +210,12 @@ export async function createBrowserAgentDefinition(
   }
 
   debugLogger.log(
-    `Created ${allTools.length} tools for browser agent: ` +
+    `为浏览器代理创建了 ${allTools.length} 个工具: ` +
       allTools.map((t) => t.name).join(', '),
   );
 
-  // Create configured definition with tools
-  // BrowserAgentDefinition is a factory function - call it with config
+  // 创建带有工具的配置定义
+  // BrowserAgentDefinition 是一个工厂函数 - 使用 config 调用它
   const baseDefinition = BrowserAgentDefinition(config, !visionDisabledReason);
   const definition: LocalAgentDefinition<typeof BrowserTaskResultSchema> = {
     ...baseDefinition,
@@ -242,9 +228,9 @@ export async function createBrowserAgentDefinition(
 }
 
 /**
- * Closes all persistent browser sessions and cleans up resources.
+ * 关闭所有持久化浏览器会话并清理资源。
  *
- * Call this on /clear commands and CLI exit to reset browser state.
+ * 在 /clear 命令和 CLI 退出时调用此函数以重置浏览器状态。
  */
 export async function resetBrowserSession(): Promise<void> {
   await BrowserManager.resetAll();

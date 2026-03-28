@@ -68,19 +68,18 @@ async function triggerPostAuthCallbacks(tokens: Credentials) {
 
 const userAccountManager = new UserAccountManager();
 
-//  OAuth Client ID used to initiate OAuth2Client class.
+// 用于初始化 OAuth2Client 类的 OAuth 客户端 ID
 const OAUTH_CLIENT_ID =
   '681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com';
 
-// OAuth Secret value used to initiate OAuth2Client class.
-// Note: It's ok to save this in git because this is an installed application
-// as described here: https://developers.google.com/identity/protocols/oauth2#installed
-// "The process results in a client ID and, in some cases, a client secret,
-// which you embed in the source code of your application. (In this context,
-// the client secret is obviously not treated as a secret.)"
+// 用于初始化 OAuth2Client 类的 OAuth 客户端密钥
+// 注意：可以将其保存在 git 中，因为这是一个已安装的应用程序
+// 如 https://developers.google.com/identity/protocols/oauth2#installed 所述
+// "该过程会产生一个客户端 ID，在某些情况下还会产生一个客户端密钥，
+// 你可以将它们嵌入到应用程序的源代码中。（在这种情况下，客户端密钥显然不被视为秘密。）"
 const OAUTH_CLIENT_SECRET = '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';
 
-// OAuth Scopes for Cloud Code authorization.
+// Cloud Code 授权的 OAuth 作用域
 const OAUTH_SCOPE = [
   'https://www.googleapis.com/auth/cloud-platform',
   'https://www.googleapis.com/auth/userinfo.email',
@@ -94,9 +93,8 @@ const SIGN_IN_FAILURE_URL =
   'https://developers.google.com/gemini-code-assist/auth_failure_gemini';
 
 /**
- * An Authentication URL for updating the credentials of a Oauth2Client
- * as well as a promise that will resolve when the credentials have
- * been refreshed (or which throws error when refreshing credentials failed).
+ * 用于更新 Oauth2Client 凭据的认证 URL，
+ * 以及一个在凭据已刷新时解析的Promise（或在刷新凭据失败时抛出错误）。
  */
 export interface OauthWebLogin {
   authUrl: string;
@@ -109,7 +107,7 @@ function getUseEncryptedStorageFlag() {
   return process.env[FORCE_ENCRYPTED_FILE_ENV_VAR] === 'true';
 }
 
-async function initOauthClient(
+async function _initOauthClient(
   authType: AuthType,
   config: Config,
 ): Promise<AuthClient> {
@@ -395,13 +393,13 @@ async function initOauthClient(
 }
 
 export async function getOauthClient(
-  authType: AuthType,
-  config: Config,
+  _authType: AuthType,
+  _config: Config,
 ): Promise<AuthClient> {
-  if (!oauthClientPromises.has(authType)) {
-    oauthClientPromises.set(authType, initOauthClient(authType, config));
-  }
-  return oauthClientPromises.get(authType)!;
+  throw new Error(
+    'OAuth2 认证不再支持。当前仅支持 OpenAI 兼容端点认证方式。' +
+      '请使用 API Key 或其他兼容的认证方式。',
+  );
 }
 
 async function authWithUserCode(client: OAuth2Client): Promise<boolean> {

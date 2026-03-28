@@ -12,7 +12,7 @@ import process from 'node:process';
 import { z } from 'zod';
 import type { ConversationRecord } from '../services/chatRecordingService.js';
 export type { ConversationRecord };
-import {
+import type {
   AuthType,
   createContentGenerator,
   createContentGeneratorConfig,
@@ -463,11 +463,11 @@ export class MCPServerConfig {
     readonly headers?: Record<string, string>,
     // For websocket transport
     readonly tcp?: string,
-    // Transport type (optional, for use with 'url' field)
-    // When set to 'http', uses StreamableHTTPClientTransport
-    // When set to 'sse', uses SSEClientTransport
-    // When omitted, auto-detects transport type
-    // Note: 'httpUrl' is deprecated in favor of 'url' + 'type'
+    // 传输类型（可选，用于 'url' 字段）
+    // 设置为 'http' 时，使用 StreamableHTTPClientTransport
+    // 设置为 'sse' 时，使用 SSEClientTransport
+    // 省略时，自动检测传输类型
+    // 注意：'httpUrl' 已弃用，请使用 'url' + 'type'
     readonly type?: 'sse' | 'http',
     // Common
     readonly timeout?: number,
@@ -1925,66 +1925,13 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   async refreshAvailableCredits(): Promise<void> {
-    const codeAssistServer = getCodeAssistServer(this);
-    if (!codeAssistServer) {
-      return;
-    }
-    try {
-      await codeAssistServer.refreshAvailableCredits();
-    } catch {
-      // Non-fatal: proceed even if refresh fails.
-      // The actual credit balance will be verified server-side.
-    }
+    // Code Assist 认证不再支持，无需刷新额度
+    return;
   }
 
   async refreshUserQuota(): Promise<RetrieveUserQuotaResponse | undefined> {
-    const codeAssistServer = getCodeAssistServer(this);
-    if (!codeAssistServer || !codeAssistServer.projectId) {
-      return undefined;
-    }
-    try {
-      const quota = await codeAssistServer.retrieveUserQuota({
-        project: codeAssistServer.projectId,
-      });
-
-      if (quota.buckets) {
-        this.lastRetrievedQuota = quota;
-        this.lastQuotaFetchTime = Date.now();
-
-        for (const bucket of quota.buckets) {
-          if (
-            bucket.modelId &&
-            bucket.remainingAmount &&
-            bucket.remainingFraction != null
-          ) {
-            const remaining = parseInt(bucket.remainingAmount, 10);
-            const limit =
-              bucket.remainingFraction > 0
-                ? Math.round(remaining / bucket.remainingFraction)
-                : (this.modelQuotas.get(bucket.modelId)?.limit ?? 0);
-
-            if (!isNaN(remaining) && Number.isFinite(limit) && limit > 0) {
-              this.modelQuotas.set(bucket.modelId, {
-                remaining,
-                limit,
-                resetTime: bucket.resetTime,
-              });
-            }
-          }
-        }
-        this.emitQuotaChangedEvent();
-      }
-
-      const hasAccess =
-        quota.buckets?.some(
-          (b) => b.modelId && isPreviewModel(b.modelId, this),
-        ) ?? false;
-      this.setHasAccessToPreviewModel(hasAccess);
-      return quota;
-    } catch (e) {
-      debugLogger.debug('Failed to retrieve user quota', e);
-      return undefined;
-    }
+    // Code Assist 认证不再支持，直接返回 undefined
+    return undefined;
   }
 
   async refreshUserQuotaIfStale(
@@ -2896,8 +2843,8 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   /**
-   * Returns whether the user has access to Pro models.
-   * This is determined by the PRO_MODEL_NO_ACCESS experiment flag.
+   * 返回用户是否无法访问 Pro 模型。
+   * 由 PRO_MODEL_NO_ACCESS 实验标志决定。
    */
   async getProModelNoAccess(): Promise<boolean> {
     await this.ensureExperimentsLoaded();
@@ -2905,23 +2852,17 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   /**
-   * Returns whether the user has access to Pro models synchronously.
+   * 同步返回用户是否无法访问 Pro 模型。
    *
-   * Note: This method should only be called after startup, once experiments have been loaded.
+   * 注意：此方法应在启动后调用，确保实验已加载。
    */
   getProModelNoAccessSync(): boolean {
-    if (this.contentGeneratorConfig?.authType !== AuthType.LOGIN_WITH_GOOGLE) {
-      return false;
-    }
-    return (
-      this.experiments?.flags[ExperimentFlags.PRO_MODEL_NO_ACCESS]?.boolValue ??
-      false
-    );
+    return false;
   }
 
   /**
-   * Returns whether Gemini 3.1 Pro has been launched.
-   * This method is async and ensures that experiments are loaded before returning the result.
+   * 返回 Gemini 3.1 Pro 是否已发布。
+   * 此方法是异步的，确保在返回结果前加载实验。
    */
   async getGemini31Launched(): Promise<boolean> {
     await this.ensureExperimentsLoaded();
@@ -2929,8 +2870,8 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   /**
-   * Returns whether Gemini 3.1 Flash Lite has been launched.
-   * This method is async and ensures that experiments are loaded before returning the result.
+   * 返回 Gemini 3.1 Flash Lite 是否已发布。
+   * 此方法是异步的，确保在返回结果前加载实验。
    */
   async getGemini31FlashLiteLaunched(): Promise<boolean> {
     await this.ensureExperimentsLoaded();
@@ -2938,40 +2879,28 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   /**
-   * Returns whether the custom tool model should be used.
+   * 返回是否应使用自定义工具模型。
    */
   async getUseCustomToolModel(): Promise<boolean> {
-    const useGemini3_1 = await this.getGemini31Launched();
-    const authType = this.contentGeneratorConfig?.authType;
-    return useGemini3_1 && authType === AuthType.USE_GEMINI;
+    return false;
   }
 
   /**
-   * Returns whether the custom tool model should be used.
+   * 同步返回是否应使用自定义工具模型。
    *
-   * Note: This method should only be called after startup, once experiments have been loaded.
+   * 注意：此方法应在启动后调用，确保实验已加载。
    */
   getUseCustomToolModelSync(): boolean {
-    const useGemini3_1 = this.getGemini31LaunchedSync();
-    const authType = this.contentGeneratorConfig?.authType;
-    return useGemini3_1 && authType === AuthType.USE_GEMINI;
+    return false;
   }
 
   /**
-   * Returns whether Gemini 3.1 has been launched.
+   * 同步返回 Gemini 3.1 是否已发布。
    *
-   * Note: This method should only be called after startup, once experiments have been loaded.
-   * If you need to call this during startup or from an async context, use
-   * getGemini31Launched instead.
+   * 注意：此方法应在启动后调用，确保实验已加载。
+   * 如果需要在启动期间或从异步上下文中调用，请使用 getGemini31Launched。
    */
   getGemini31LaunchedSync(): boolean {
-    const authType = this.contentGeneratorConfig?.authType;
-    if (
-      authType === AuthType.USE_GEMINI ||
-      authType === AuthType.USE_VERTEX_AI
-    ) {
-      return true;
-    }
     return (
       this.experiments?.flags[ExperimentFlags.GEMINI_3_1_PRO_LAUNCHED]
         ?.boolValue ?? false
@@ -2979,20 +2908,12 @@ export class Config implements McpContext, AgentLoopContext {
   }
 
   /**
-   * Returns whether Gemini 3.1 Flash Lite has been launched.
+   * 同步返回 Gemini 3.1 Flash Lite 是否已发布。
    *
-   * Note: This method should only be called after startup, once experiments have been loaded.
-   * If you need to call this during startup or from an async context, use
-   * getGemini31FlashLiteLaunched instead.
+   * 注意：此方法应在启动后调用，确保实验已加载。
+   * 如果需要在启动期间或从异步上下文中调用，请使用 getGemini31FlashLiteLaunched。
    */
   getGemini31FlashLiteLaunchedSync(): boolean {
-    const authType = this.contentGeneratorConfig?.authType;
-    if (
-      authType === AuthType.USE_GEMINI ||
-      authType === AuthType.USE_VERTEX_AI
-    ) {
-      return true;
-    }
     return (
       this.experiments?.flags[ExperimentFlags.GEMINI_3_1_FLASH_LITE_LAUNCHED]
         ?.boolValue ?? false
@@ -3005,8 +2926,8 @@ export class Config implements McpContext, AgentLoopContext {
     }
     try {
       await this.experimentsPromise;
-    } catch (e) {
-      debugLogger.debug('Failed to fetch experiments', e);
+    } catch (e: unknown) {
+      debugLogger.debug('Failed to fetch experiments', String(e));
     }
   }
 
