@@ -14,10 +14,12 @@ import type { ConversationRecord } from '../services/chatRecordingService.js';
 export type { ConversationRecord };
 import type {
   AuthType,
+  ContentGenerator,
+  ContentGeneratorConfig,
+} from '../core/contentGenerator.js';
+import {
   createContentGenerator,
   createContentGeneratorConfig,
-  type ContentGenerator,
-  type ContentGeneratorConfig,
 } from '../core/contentGenerator.js';
 import type { OverageStrategy } from '../billing/billing.js';
 import { PromptRegistry } from '../prompts/prompt-registry.js';

@@ -13,8 +13,6 @@ import {
   McpConfigDefinitionSchema,
   type AdminControlsSettings,
 } from '../types.js';
-import { getCodeAssistServer } from '../codeAssist.js';
-import type { Config } from '../../config/config.js';
 
 let pollingInterval: NodeJS.Timeout | undefined;
 let currentSettings: AdminControlsSettings | undefined;
@@ -234,12 +232,9 @@ export function stopAdminControlsPolling() {
  */
 export function getAdminErrorMessage(
   featureName: string,
-  config: Config | undefined,
+  _config?: unknown,
 ): string {
-  const server = config ? getCodeAssistServer(config) : undefined;
-  const projectId = server?.projectId;
-  const projectParam = projectId ? `?project=${projectId}` : '';
-  return `${featureName} is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli${projectParam}`;
+  return `${featureName} is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli`;
 }
 
 /**
@@ -251,15 +246,12 @@ export function getAdminErrorMessage(
  */
 export function getAdminBlockedMcpServersMessage(
   blockedServers: string[],
-  config: Config | undefined,
+  _config?: unknown,
 ): string {
-  const server = config ? getCodeAssistServer(config) : undefined;
-  const projectId = server?.projectId;
-  const projectParam = projectId ? `?project=${projectId}` : '';
   const count = blockedServers.length;
   const serverText = count === 1 ? 'server is' : 'servers are';
 
   return `${count} MCP ${serverText} not allowlisted by your administrator. To enable ${
     count === 1 ? 'it' : 'them'
-  }, please request an update to the settings at: https://goo.gle/manage-gemini-cli${projectParam}`;
+  }, please request an update to the settings at: https://goo.gle/manage-gemini-cli`;
 }

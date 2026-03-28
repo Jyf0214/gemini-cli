@@ -23,16 +23,10 @@ import {
   getAdminBlockedMcpServersMessage,
 } from './admin_controls.js';
 import type { CodeAssistServer } from '../server.js';
-import type { Config } from '../../config/config.js';
-import { getCodeAssistServer } from '../codeAssist.js';
 import type {
   FetchAdminControlsResponse,
   AdminControlsSettings,
 } from '../types.js';
-
-vi.mock('../codeAssist.js', () => ({
-  getCodeAssistServer: vi.fn(),
-}));
 
 describe('Admin Controls', () => {
   let mockServer: CodeAssistServer;
@@ -809,48 +803,16 @@ describe('Admin Controls', () => {
   });
 
   describe('getAdminErrorMessage', () => {
-    let mockConfig: Config;
-
-    beforeEach(() => {
-      mockConfig = {} as Config;
-    });
-
-    it('should include feature name and project ID when present', () => {
-      vi.mocked(getCodeAssistServer).mockReturnValue({
-        projectId: 'test-project-123',
-      } as CodeAssistServer);
-
-      const message = getAdminErrorMessage('Code Completion', mockConfig);
+    it('should include feature name without project ID', () => {
+      const message = getAdminErrorMessage('Code Completion');
 
       expect(message).toBe(
-        'Code Completion is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli?project=test-project-123',
+        'Code Completion is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
       );
     });
 
-    it('should include feature name but OMIT project ID when missing', () => {
-      vi.mocked(getCodeAssistServer).mockReturnValue({
-        projectId: undefined,
-      } as CodeAssistServer);
-
-      const message = getAdminErrorMessage('Chat', mockConfig);
-
-      expect(message).toBe(
-        'Chat is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
-      );
-    });
-
-    it('should include feature name but OMIT project ID when server is undefined', () => {
-      vi.mocked(getCodeAssistServer).mockReturnValue(undefined);
-
-      const message = getAdminErrorMessage('Chat', mockConfig);
-
-      expect(message).toBe(
-        'Chat is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
-      );
-    });
-
-    it('should include feature name but OMIT project ID when config is undefined', () => {
-      const message = getAdminErrorMessage('Chat', undefined);
+    it('should include feature name for Chat', () => {
+      const message = getAdminErrorMessage('Chat');
 
       expect(message).toBe(
         'Chat is disabled by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
@@ -859,52 +821,23 @@ describe('Admin Controls', () => {
   });
 
   describe('getAdminBlockedMcpServersMessage', () => {
-    let mockConfig: Config;
-
-    beforeEach(() => {
-      mockConfig = {} as Config;
-    });
-
     it('should show count for a single blocked server', () => {
-      vi.mocked(getCodeAssistServer).mockReturnValue({
-        projectId: 'test-project-123',
-      } as CodeAssistServer);
-
-      const message = getAdminBlockedMcpServersMessage(
-        ['server-1'],
-        mockConfig,
-      );
+      const message = getAdminBlockedMcpServersMessage(['server-1']);
 
       expect(message).toBe(
-        '1 MCP server is not allowlisted by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli?project=test-project-123',
+        '1 MCP server is not allowlisted by your administrator. To enable it, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
       );
     });
 
     it('should show count for multiple blocked servers', () => {
-      vi.mocked(getCodeAssistServer).mockReturnValue({
-        projectId: 'test-project-123',
-      } as CodeAssistServer);
-
-      const message = getAdminBlockedMcpServersMessage(
-        ['server-1', 'server-2', 'server-3'],
-        mockConfig,
-      );
+      const message = getAdminBlockedMcpServersMessage([
+        'server-1',
+        'server-2',
+        'server-3',
+      ]);
 
       expect(message).toBe(
-        '3 MCP servers are not allowlisted by your administrator. To enable them, please request an update to the settings at: https://goo.gle/manage-gemini-cli?project=test-project-123',
-      );
-    });
-
-    it('should format message correctly with no project ID', () => {
-      vi.mocked(getCodeAssistServer).mockReturnValue(undefined);
-
-      const message = getAdminBlockedMcpServersMessage(
-        ['server-1', 'server-2'],
-        mockConfig,
-      );
-
-      expect(message).toBe(
-        '2 MCP servers are not allowlisted by your administrator. To enable them, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
+        '3 MCP servers are not allowlisted by your administrator. To enable them, please request an update to the settings at: https://goo.gle/manage-gemini-cli',
       );
     });
   });

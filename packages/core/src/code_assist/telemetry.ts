@@ -8,27 +8,16 @@ import { FinishReason, type GenerateContentResponse } from '@google/genai';
 import { getCitations } from '../utils/generateContentResponseUtilities.js';
 import {
   ActionStatus,
-  ConversationInteractionInteraction,
   InitiationMethod,
-  type ConversationInteraction,
   type ConversationOffered,
   type StreamingLatency,
 } from './types.js';
 import type { CompletedToolCall } from '../scheduler/types.js';
 import type { Config } from '../config/config.js';
 import { debugLogger } from '../utils/debugLogger.js';
-import { getCodeAssistServer } from './codeAssist.js';
 import { EDIT_TOOL_NAMES } from '../tools/tool-names.js';
 import { getErrorMessage } from '../utils/errors.js';
 import type { CodeAssistServer } from './server.js';
-import { ToolConfirmationOutcome } from '../tools/tools.js';
-import { getLanguageFromFilePath } from '../utils/language-detection.js';
-import {
-  computeModelAddedAndRemovedLines,
-  getFileDiffFromResultDisplay,
-} from '../utils/fileDiffUtils.js';
-import { isEditToolParams } from '../tools/edit.js';
-import { isWriteFileToolParams } from '../tools/write-file.js';
 
 export async function recordConversationOffered(
   server: CodeAssistServer,
@@ -59,29 +48,11 @@ export async function recordConversationOffered(
 }
 
 export async function recordToolCallInteractions(
-  config: Config,
-  toolCalls: CompletedToolCall[],
+  _config: Config,
+  _toolCalls: CompletedToolCall[],
 ): Promise<void> {
-  // Only send interaction events for responses that contain function calls.
-  if (toolCalls.length === 0) {
-    return;
-  }
-
-  try {
-    const server = getCodeAssistServer(config);
-    if (!server) {
-      return;
-    }
-
-    const interaction = summarizeToolCalls(toolCalls);
-    if (interaction) {
-      await server.recordConversationInteraction(interaction);
-    }
-  } catch (error: unknown) {
-    debugLogger.warn(
-      `Error recording tool call interactions: ${getErrorMessage(error)}`,
-    );
-  }
+  // Code Assist is no longer supported; skip telemetry recording.
+  return;
 }
 
 export function createConversationOffered(
@@ -111,104 +82,6 @@ export function createConversationOffered(
     isAgentic: true,
     initiationMethod: InitiationMethod.COMMAND,
     trajectoryId,
-  };
-}
-
-function summarizeToolCalls(
-  toolCalls: CompletedToolCall[],
-): ConversationInteraction | undefined {
-  let acceptedToolCalls = 0;
-  let actionStatus = undefined;
-  let traceId = undefined;
-
-  // Treat file edits as ACCEPT_FILE and everything else as unknown.
-  let isEdit = false;
-  let acceptedLines = 0;
-  let removedLines = 0;
-  let language = undefined;
-
-  // Iterate the tool calls and summarize them into a single conversation
-  // interaction so that the ConversationOffered and ConversationInteraction
-  // events are 1:1 in telemetry.
-  for (const toolCall of toolCalls) {
-    traceId ||= toolCall.request.traceId;
-
-    // If any tool call is canceled, we treat the entire interaction as canceled.
-    if (toolCall.status === 'cancelled') {
-      actionStatus = ActionStatus.ACTION_STATUS_CANCELLED;
-      break;
-    }
-
-    // If any tool call encounters an error, we treat the entire interaction as
-    // having errored.
-    if (toolCall.status === 'error') {
-      actionStatus = ActionStatus.ACTION_STATUS_ERROR_UNKNOWN;
-      break;
-    }
-
-    // Record if the tool call was accepted.
-    if (toolCall.outcome !== ToolConfirmationOutcome.Cancel) {
-      acceptedToolCalls++;
-
-      // Edits are ACCEPT_FILE, everything else is UNKNOWN.
-      if (EDIT_TOOL_NAMES.has(toolCall.request.name)) {
-        isEdit = true;
-
-        if (
-          !language &&
-          (isEditToolParams(toolCall.request.args) ||
-            isWriteFileToolParams(toolCall.request.args))
-        ) {
-          language = getLanguageFromFilePath(toolCall.request.args.file_path);
-        }
-
-        if (toolCall.status === 'success') {
-          const fileDiff = getFileDiffFromResultDisplay(
-            toolCall.response.resultDisplay,
-          );
-          if (fileDiff?.diffStat) {
-            const lines = computeModelAddedAndRemovedLines(fileDiff.diffStat);
-
-            // The API expects acceptedLines to be addedLines + removedLines.
-            acceptedLines += lines.addedLines + lines.removedLines;
-            removedLines += lines.removedLines;
-          }
-        }
-      }
-    }
-  }
-
-  // Only file interaction telemetry if 100% of the tool calls were accepted
-  // and at least one of them was an edit.
-  return traceId && acceptedToolCalls / toolCalls.length >= 1 && isEdit
-    ? createConversationInteraction(
-        traceId,
-        actionStatus || ActionStatus.ACTION_STATUS_NO_ERROR,
-        ConversationInteractionInteraction.ACCEPT_FILE,
-        String(acceptedLines),
-        String(removedLines),
-        language,
-      )
-    : undefined;
-}
-
-function createConversationInteraction(
-  traceId: string,
-  status: ActionStatus,
-  interaction: ConversationInteractionInteraction,
-  acceptedLines?: string,
-  removedLines?: string,
-  language?: string,
-): ConversationInteraction {
-  return {
-    traceId,
-    status,
-    interaction,
-    acceptedLines,
-    removedLines,
-    language,
-    isAgentic: true,
-    initiationMethod: InitiationMethod.COMMAND,
   };
 }
 
