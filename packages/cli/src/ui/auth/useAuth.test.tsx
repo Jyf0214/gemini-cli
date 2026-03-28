@@ -50,14 +50,14 @@ describe('useAuth', () => {
         merged: {
           security: {
             auth: {
-              enforcedType: AuthType.LOGIN_WITH_GOOGLE,
+              enforcedType: AuthType.OPENAI_COMPATIBLE,
             },
           },
         },
       } as LoadedSettings;
 
       const error = validateAuthMethodWithSettings(
-        AuthType.USE_GEMINI,
+        AuthType.OPENAI_COMPATIBLE,
         settings,
       );
       expect(error).toContain('Authentication is enforced to be oauth');
@@ -75,7 +75,7 @@ describe('useAuth', () => {
       } as LoadedSettings;
 
       const error = validateAuthMethodWithSettings(
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
         settings,
       );
       expect(error).toBeNull();
@@ -91,7 +91,7 @@ describe('useAuth', () => {
       } as LoadedSettings;
 
       const error = validateAuthMethodWithSettings(
-        AuthType.USE_GEMINI,
+        AuthType.OPENAI_COMPATIBLE,
         settings,
       );
       expect(error).toBeNull();
@@ -124,12 +124,12 @@ describe('useAuth', () => {
 
       mockValidateAuthMethod.mockReturnValue('Validation Error');
       const error = validateAuthMethodWithSettings(
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
         settings,
       );
       expect(error).toBe('Validation Error');
       expect(mockValidateAuthMethod).toHaveBeenCalledWith(
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
       );
     });
   });
@@ -166,7 +166,7 @@ describe('useAuth', () => {
 
     it('should initialize with Unauthenticated state', async () => {
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
       // Because we defer refreshAuth, the initial state is safely caught here
       expect(result.current.authState).toBe(AuthState.Unauthenticated);
@@ -212,7 +212,7 @@ describe('useAuth', () => {
       );
 
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.USE_GEMINI), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
 
       await act(async () => {
@@ -254,7 +254,7 @@ describe('useAuth', () => {
       );
 
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.USE_GEMINI), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
 
       await act(async () => {
@@ -265,7 +265,7 @@ describe('useAuth', () => {
         deferredRefreshAuth.resolve();
       });
 
-      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(AuthType.USE_GEMINI);
+      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(AuthType.OPENAI_COMPATIBLE);
       expect(result.current.authState).toBe(AuthState.Authenticated);
       expect(result.current.apiKeyDefaultValue).toBe('stored-key');
     });
@@ -274,14 +274,14 @@ describe('useAuth', () => {
       process.env['GEMINI_API_KEY'] = 'env-key';
 
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.USE_GEMINI), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
 
       await act(async () => {
         deferredRefreshAuth.resolve();
       });
 
-      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(AuthType.USE_GEMINI);
+      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(AuthType.OPENAI_COMPATIBLE);
       expect(result.current.authState).toBe(AuthState.Authenticated);
       expect(result.current.apiKeyDefaultValue).toBe('env-key');
     });
@@ -290,14 +290,14 @@ describe('useAuth', () => {
       process.env['GEMINI_API_KEY'] = 'env-key';
 
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.USE_GEMINI), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
 
       await act(async () => {
         deferredRefreshAuth.resolve();
       });
 
-      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(AuthType.USE_GEMINI);
+      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(AuthType.OPENAI_COMPATIBLE);
       expect(result.current.authState).toBe(AuthState.Authenticated);
       expect(result.current.apiKeyDefaultValue).toBe('env-key');
     });
@@ -305,7 +305,7 @@ describe('useAuth', () => {
     it('should set error if validation fails', async () => {
       mockValidateAuthMethod.mockReturnValue('Validation Failed');
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
 
       expect(result.current.authError).toBe('Validation Failed');
@@ -315,7 +315,7 @@ describe('useAuth', () => {
     it('should set error if GEMINI_DEFAULT_AUTH_TYPE is invalid', async () => {
       process.env['GEMINI_DEFAULT_AUTH_TYPE'] = 'INVALID_TYPE';
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
 
       expect(result.current.authError).toContain(
@@ -326,7 +326,7 @@ describe('useAuth', () => {
 
     it('should authenticate successfully for valid auth type', async () => {
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
 
       await act(async () => {
@@ -334,7 +334,7 @@ describe('useAuth', () => {
       });
 
       expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
-        AuthType.LOGIN_WITH_GOOGLE,
+        AuthType.OPENAI_COMPATIBLE,
       );
       expect(result.current.authState).toBe(AuthState.Authenticated);
       expect(result.current.authError).toBeNull();
@@ -342,7 +342,7 @@ describe('useAuth', () => {
 
     it('should handle refreshAuth failure', async () => {
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
 
       await act(async () => {
@@ -356,7 +356,7 @@ describe('useAuth', () => {
     it('should handle ProjectIdRequiredError without "Failed to login" prefix', async () => {
       const projectIdError = new ProjectIdRequiredError();
       const { result } = await renderHook(() =>
-        useAuthCommand(createSettings(AuthType.LOGIN_WITH_GOOGLE), mockConfig),
+        useAuthCommand(createSettings(AuthType.OPENAI_COMPATIBLE), mockConfig),
       );
 
       await act(async () => {

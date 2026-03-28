@@ -111,7 +111,7 @@ describe('GeminiAgent Session Resume', () => {
     } as unknown as Mocked<Config>;
     mockSettings = {
       merged: {
-        security: { auth: { selectedType: AuthType.LOGIN_WITH_GOOGLE } },
+        security: { auth: { selectedType: AuthType.OPENAI_COMPATIBLE } },
         mcpServers: {},
       },
       setValue: vi.fn(),

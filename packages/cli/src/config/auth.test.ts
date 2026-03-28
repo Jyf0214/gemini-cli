@@ -29,66 +29,21 @@ describe('validateAuthMethod', () => {
 
   it.each([
     {
-      description: 'should return null for LOGIN_WITH_GOOGLE',
-      authType: AuthType.LOGIN_WITH_GOOGLE,
-      envs: {},
-      expected: null,
-    },
-    {
-      description: 'should return null for COMPUTE_ADC',
-      authType: AuthType.COMPUTE_ADC,
-      envs: {},
-      expected: null,
-    },
-    {
-      description: 'should return null for USE_GEMINI if GEMINI_API_KEY is set',
-      authType: AuthType.USE_GEMINI,
-      envs: { GEMINI_API_KEY: 'test-key' },
-      expected: null,
-    },
-    {
       description:
-        'should return an error message for USE_GEMINI if GEMINI_API_KEY is not set',
-      authType: AuthType.USE_GEMINI,
+        'should return error message for OPENAI_COMPATIBLE if endpoint is not set',
+      authType: AuthType.OPENAI_COMPATIBLE,
       envs: {},
       expected:
-        'When using Gemini API, you must specify the GEMINI_API_KEY environment variable.\n' +
-        'Update your environment and try again (no reload needed if using .env)!',
-    },
-    {
-      description:
-        'should return null for USE_VERTEX_AI if GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION are set',
-      authType: AuthType.USE_VERTEX_AI,
-      envs: {
-        GOOGLE_CLOUD_PROJECT: 'test-project',
-        GOOGLE_CLOUD_LOCATION: 'test-location',
-      },
-      expected: null,
-    },
-    {
-      description:
-        'should return null for USE_VERTEX_AI if GOOGLE_API_KEY is set',
-      authType: AuthType.USE_VERTEX_AI,
-      envs: { GOOGLE_API_KEY: 'test-api-key' },
-      expected: null,
-    },
-    {
-      description:
-        'should return an error message for USE_VERTEX_AI if no required environment variables are set',
-      authType: AuthType.USE_VERTEX_AI,
-      envs: {},
-      expected:
-        'When using Vertex AI, you must specify either:\n' +
-        '• GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION environment variables.\n' +
-        '• GOOGLE_API_KEY environment variable (if using express mode).\n' +
-        'Update your environment and try again (no reload needed if using .env)!',
+        '使用 OpenAI 兼容 API 时，必须配置端点 URL。\n' +
+        '请重新运行认证流程以提供端点、API 密钥和模型。',
     },
     {
       description: 'should return an error message for an invalid auth method',
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       authType: 'invalid-method' as any,
       envs: {},
-      expected: 'Invalid auth method selected.',
+      expected:
+        '当前仅支持 OpenAI 兼容端点认证方式。请选择 OpenAI Compatible 作为认证方法。',
     },
   ])('$description', ({ authType, envs, expected }) => {
     for (const [key, value] of Object.entries(envs)) {
