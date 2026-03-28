@@ -219,7 +219,7 @@ describe('GeminiAgent', () => {
     (loadSettings as unknown as Mock).mockImplementation(() => ({
       merged: {
         security: {
-          auth: { selectedType: AuthType.LOGIN_WITH_GOOGLE },
+          auth: { selectedType: AuthType.OPENAI_COMPATIBLE },
           enablePermanentToolApproval: true,
         },
         mcpServers: {},
@@ -237,22 +237,13 @@ describe('GeminiAgent', () => {
     });
 
     expect(response.protocolVersion).toBe(acp.PROTOCOL_VERSION);
-    expect(response.authMethods).toHaveLength(4);
-    const gatewayAuth = response.authMethods?.find(
-      (m) => m.id === AuthType.GATEWAY,
+    expect(response.authMethods).toHaveLength(1);
+    const openaiAuth = response.authMethods?.find(
+      (m) => m.id === AuthType.OPENAI_COMPATIBLE,
     );
-    expect(gatewayAuth?._meta).toEqual({
-      gateway: {
-        protocol: 'google',
-        restartRequired: 'false',
-      },
-    });
-    const geminiAuth = response.authMethods?.find(
-      (m) => m.id === AuthType.USE_GEMINI,
-    );
-    expect(geminiAuth?._meta).toEqual({
+    expect(openaiAuth?._meta).toEqual({
       'api-key': {
-        provider: 'google',
+        provider: 'openai',
       },
     });
     expect(response.agentCapabilities?.loadSession).toBe(true);
@@ -260,11 +251,11 @@ describe('GeminiAgent', () => {
 
   it('should authenticate correctly', async () => {
     await agent.authenticate({
-      methodId: AuthType.LOGIN_WITH_GOOGLE,
+      methodId: AuthType.OPENAI_COMPATIBLE,
     });
 
     expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
-      AuthType.LOGIN_WITH_GOOGLE,
+      AuthType.OPENAI_COMPATIBLE,
       undefined,
       undefined,
       undefined,
@@ -272,20 +263,20 @@ describe('GeminiAgent', () => {
     expect(mockSettings.setValue).toHaveBeenCalledWith(
       SettingScope.User,
       'security.auth.selectedType',
-      AuthType.LOGIN_WITH_GOOGLE,
+      AuthType.OPENAI_COMPATIBLE,
     );
   });
 
   it('should authenticate correctly with api-key in _meta', async () => {
     await agent.authenticate({
-      methodId: AuthType.USE_GEMINI,
+      methodId: AuthType.OPENAI_COMPATIBLE,
       _meta: {
         'api-key': 'test-api-key',
       },
     } as unknown as acp.AuthenticateRequest);
 
     expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
-      AuthType.USE_GEMINI,
+      AuthType.OPENAI_COMPATIBLE,
       'test-api-key',
       undefined,
       undefined,
@@ -293,13 +284,13 @@ describe('GeminiAgent', () => {
     expect(mockSettings.setValue).toHaveBeenCalledWith(
       SettingScope.User,
       'security.auth.selectedType',
-      AuthType.USE_GEMINI,
+      AuthType.OPENAI_COMPATIBLE,
     );
   });
 
   it('should authenticate correctly with gateway method', async () => {
     await agent.authenticate({
-      methodId: AuthType.GATEWAY,
+      methodId: AuthType.OPENAI_COMPATIBLE,
       _meta: {
         gateway: {
           baseUrl: 'https://example.com',
@@ -309,7 +300,7 @@ describe('GeminiAgent', () => {
     } as unknown as acp.AuthenticateRequest);
 
     expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
-      AuthType.GATEWAY,
+      AuthType.OPENAI_COMPATIBLE,
       undefined,
       'https://example.com',
       { Authorization: 'Bearer token' },
@@ -317,14 +308,14 @@ describe('GeminiAgent', () => {
     expect(mockSettings.setValue).toHaveBeenCalledWith(
       SettingScope.User,
       'security.auth.selectedType',
-      AuthType.GATEWAY,
+      AuthType.OPENAI_COMPATIBLE,
     );
   });
 
   it('should throw acp.RequestError when gateway payload is malformed', async () => {
     await expect(
       agent.authenticate({
-        methodId: AuthType.GATEWAY,
+        methodId: AuthType.OPENAI_COMPATIBLE,
         _meta: {
           gateway: {
             // Invalid baseUrl
@@ -460,7 +451,7 @@ describe('GeminiAgent', () => {
   it('should fail session creation if Gemini API key is missing', async () => {
     (loadSettings as unknown as Mock).mockImplementation(() => ({
       merged: {
-        security: { auth: { selectedType: AuthType.USE_GEMINI } },
+        security: { auth: { selectedType: AuthType.OPENAI_COMPATIBLE } },
         mcpServers: {},
       },
       setValue: vi.fn(),
