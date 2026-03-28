@@ -88,7 +88,13 @@ export class OpenAIContentGenerator implements ContentGenerator {
 
   constructor(apiKey: string, baseUrl: string) {
     this.apiKey = apiKey;
-    this.baseUrl = baseUrl.replace(/\/$/, '');
+    // 移除末尾的斜杠
+    let cleanUrl = baseUrl.replace(/\/$/, '');
+    // 如果 URL 以 /v1 结尾，移除它（因为后续会统一添加 /v1/chat/completions）
+    if (cleanUrl.endsWith('/v1')) {
+      cleanUrl = cleanUrl.slice(0, -3);
+    }
+    this.baseUrl = cleanUrl;
     debugLogger.debug('OpenAIContentGenerator initialized:', {
       baseUrl: this.baseUrl,
       apiKey: apiKey ? '***' : 'empty',
