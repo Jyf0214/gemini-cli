@@ -7,6 +7,7 @@
 import { type AuthClient } from 'google-auth-library';
 import * as net from 'node:net';
 import { promises as fs } from 'node:fs';
+import { EventEmitter } from 'node:events';
 import type { Config } from '../config/config.js';
 import { UserAccountManager } from '../utils/userAccountManager.js';
 import type { AuthType } from '../core/contentGenerator.js';
@@ -18,6 +19,9 @@ import { debugLogger } from '../utils/debugLogger.js';
 const userAccountManager = new UserAccountManager();
 
 const oauthClientPromises = new Map<AuthType, Promise<AuthClient>>();
+
+// 认证事件发射器（不再使用，仅为兼容性保留）
+export const authEvents = new EventEmitter();
 
 function getUseEncryptedStorageFlag() {
   return process.env[FORCE_ENCRYPTED_FILE_ENV_VAR] === 'true';
