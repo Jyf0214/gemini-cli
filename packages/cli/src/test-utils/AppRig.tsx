@@ -236,9 +236,9 @@ export class AppRig {
 
     await act(async () => {
       await this.config!.initialize();
-      // Since we mocked useAuthCommand, we must manually trigger the first
-      // refreshAuth to ensure contentGenerator is initialized.
-      await this.config!.refreshAuth(AuthType.USE_GEMINI);
+      // 由于我们 mock 了 useAuthCommand，必须手动触发首次 refreshAuth
+      // 以确保 contentGenerator 被正确初始化。
+      await this.config!.refreshAuth(AuthType.OPENAI_COMPATIBLE);
     });
   }
 
@@ -259,7 +259,7 @@ export class AppRig {
       // For live tests, we allow falling through to the real shell service if no mock matches
       MockShellExecutionService.setPassthrough(true);
     }
-    vi.stubEnv('GEMINI_DEFAULT_AUTH_TYPE', AuthType.USE_GEMINI);
+    vi.stubEnv('GEMINI_DEFAULT_AUTH_TYPE', AuthType.OPENAI_COMPATIBLE);
   }
 
   private createRigSettings(): LoadedSettings {
@@ -269,7 +269,7 @@ export class AppRig {
         settings: {
           security: {
             auth: {
-              selectedType: AuthType.USE_GEMINI,
+              selectedType: AuthType.OPENAI_COMPATIBLE,
               useExternal: true,
             },
             folderTrust: {
@@ -286,7 +286,7 @@ export class AppRig {
       merged: {
         security: {
           auth: {
-            selectedType: AuthType.USE_GEMINI,
+            selectedType: AuthType.OPENAI_COMPATIBLE,
             useExternal: true,
           },
           folderTrust: {
