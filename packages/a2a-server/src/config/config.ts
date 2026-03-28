@@ -24,8 +24,6 @@ import {
   getCodeAssistServer,
   ExperimentFlags,
   isHeadlessMode,
-  FatalAuthenticationError,
-  isCloudShell,
   PolicyDecision,
   PRIORITY_YOLO_ALLOW_ALL,
   type TelemetryTarget,
@@ -263,84 +261,9 @@ function findEnvFile(startDir: string): string | null {
 
 async function refreshAuthentication(
   config: Config,
-  adcFilePath: string | undefined,
+  _adcFilePath: string | undefined,
   logPrefix: string,
 ): Promise<void> {
-  if (process.env['USE_CCPA']) {
-    logger.info(`[${logPrefix}] Using CCPA Auth:`);
-    try {
-      if (adcFilePath) {
-        path.resolve(adcFilePath);
-      }
-    } catch (e) {
-      logger.error(
-        `[${logPrefix}] USE_CCPA env var is true but unable to resolve GOOGLE_APPLICATION_CREDENTIALS file path ${adcFilePath}. Error ${e}`,
-      );
-    }
-
-    const useComputeAdc = process.env['GEMINI_CLI_USE_COMPUTE_ADC'] === 'true';
-    const isHeadless = isHeadlessMode();
-    const shouldSkipOauth = isHeadless || useComputeAdc;
-
-    if (shouldSkipOauth) {
-      if (isCloudShell() || useComputeAdc) {
-        logger.info(
-          `[${logPrefix}] Skipping LOGIN_WITH_GOOGLE due to ${isHeadless ? 'headless mode' : 'GEMINI_CLI_USE_COMPUTE_ADC'}. Attempting COMPUTE_ADC.`,
-        );
-        try {
-          await config.refreshAuth(AuthType.COMPUTE_ADC);
-          logger.info(`[${logPrefix}] COMPUTE_ADC successful.`);
-        } catch (adcError) {
-          const adcMessage =
-            adcError instanceof Error ? adcError.message : String(adcError);
-          throw new FatalAuthenticationError(
-            `COMPUTE_ADC failed: ${adcMessage}. (Skipped LOGIN_WITH_GOOGLE due to ${isHeadless ? 'headless mode' : 'GEMINI_CLI_USE_COMPUTE_ADC'})`,
-          );
-        }
-      } else {
-        throw new FatalAuthenticationError(
-          `Interactive terminal required for LOGIN_WITH_GOOGLE. Run in an interactive terminal or set GEMINI_CLI_USE_COMPUTE_ADC=true to use Application Default Credentials.`,
-        );
-      }
-    } else {
-      try {
-        await config.refreshAuth(AuthType.LOGIN_WITH_GOOGLE);
-      } catch (e) {
-        if (
-          e instanceof FatalAuthenticationError &&
-          (isCloudShell() || useComputeAdc)
-        ) {
-          logger.warn(
-            `[${logPrefix}] LOGIN_WITH_GOOGLE failed. Attempting COMPUTE_ADC fallback.`,
-          );
-          try {
-            await config.refreshAuth(AuthType.COMPUTE_ADC);
-            logger.info(`[${logPrefix}] COMPUTE_ADC fallback successful.`);
-          } catch (adcError) {
-            logger.error(
-              `[${logPrefix}] COMPUTE_ADC fallback failed: ${adcError}`,
-            );
-            const originalMessage = e instanceof Error ? e.message : String(e);
-            const adcMessage =
-              adcError instanceof Error ? adcError.message : String(adcError);
-            throw new FatalAuthenticationError(
-              `${originalMessage}. Fallback to COMPUTE_ADC also failed: ${adcMessage}`,
-            );
-          }
-        } else {
-          throw e;
-        }
-      }
-    }
-    logger.info(
-      `[${logPrefix}] GOOGLE_CLOUD_PROJECT: ${process.env['GOOGLE_CLOUD_PROJECT']}`,
-    );
-  } else if (process.env['GEMINI_API_KEY']) {
-    logger.info(`[${logPrefix}] Using Gemini API Key`);
-    await config.refreshAuth(AuthType.USE_GEMINI);
-  } else {
-    const errorMessage = `[${logPrefix}] Unable to set GeneratorConfig. Please provide a GEMINI_API_KEY or set USE_CCPA.`;
-    logger.error(errorMessage);
-    throw new Error(errorMessage);
-  }
+  logger.info(`[${logPrefix}] 使用 OpenAI 兼容端点认证`);
+  await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
 }
