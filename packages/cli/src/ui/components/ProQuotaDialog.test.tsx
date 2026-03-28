@@ -13,7 +13,6 @@ import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import {
   PREVIEW_GEMINI_MODEL,
   DEFAULT_GEMINI_FLASH_MODEL,
-  AuthType,
 } from '@google/gemini-cli-core';
 
 // Mock the child component to make it easier to test the parent
@@ -63,7 +62,7 @@ describe('ProQuotaDialog', () => {
 
   describe('for non-flash model failures', () => {
     describe('when it is a terminal quota error', () => {
-      it('should render switch, upgrade, and stop options for LOGIN_WITH_GOOGLE', async () => {
+      it('should render switch and stop options (no upgrade option)', async () => {
         const { unmount } = await render(
           <ProQuotaDialog
             failedModel="gemini-2.5-pro"
@@ -71,45 +70,6 @@ describe('ProQuotaDialog', () => {
             message="paid tier quota error"
             isTerminalQuotaError={true}
             isModelNotFoundError={false}
-            authType={AuthType.LOGIN_WITH_GOOGLE}
-            onChoice={mockOnChoice}
-          />,
-        );
-
-        expect(RadioButtonSelect).toHaveBeenCalledWith(
-          expect.objectContaining({
-            items: [
-              {
-                label: 'Switch to gemini-2.5-flash',
-                value: 'retry_always',
-                key: 'retry_always',
-              },
-              {
-                label: 'Upgrade for higher limits',
-                value: 'upgrade',
-                key: 'upgrade',
-              },
-              {
-                label: 'Stop',
-                value: 'retry_later',
-                key: 'retry_later',
-              },
-            ],
-          }),
-          undefined,
-        );
-        unmount();
-      });
-
-      it('should NOT render upgrade option for USE_GEMINI', async () => {
-        const { unmount } = await render(
-          <ProQuotaDialog
-            failedModel="gemini-2.5-pro"
-            fallbackModel="gemini-2.5-flash"
-            message="paid tier quota error"
-            isTerminalQuotaError={true}
-            isModelNotFoundError={false}
-            authType={AuthType.USE_GEMINI}
             onChoice={mockOnChoice}
           />,
         );
@@ -165,7 +125,7 @@ describe('ProQuotaDialog', () => {
         unmount();
       });
 
-      it('should render switch, upgrade, and stop options for LOGIN_WITH_GOOGLE (free tier)', async () => {
+      it('should render switch and stop options (no upgrade option for free tier)', async () => {
         const { unmount } = await render(
           <ProQuotaDialog
             failedModel="gemini-2.5-pro"
@@ -173,7 +133,6 @@ describe('ProQuotaDialog', () => {
             message="free tier quota error"
             isTerminalQuotaError={true}
             isModelNotFoundError={false}
-            authType={AuthType.LOGIN_WITH_GOOGLE}
             onChoice={mockOnChoice}
           />,
         );
@@ -187,11 +146,6 @@ describe('ProQuotaDialog', () => {
                 key: 'retry_always',
               },
               {
-                label: 'Upgrade for higher limits',
-                value: 'upgrade',
-                key: 'upgrade',
-              },
-              {
                 label: 'Stop',
                 value: 'retry_later',
                 key: 'retry_later',
@@ -203,7 +157,7 @@ describe('ProQuotaDialog', () => {
         unmount();
       });
 
-      it('should NOT render upgrade option for LOGIN_WITH_GOOGLE if tier is Ultra', async () => {
+      it('should render switch and stop options (no upgrade option for Ultra tier)', async () => {
         const { unmount } = await render(
           <ProQuotaDialog
             failedModel="gemini-2.5-pro"
@@ -211,7 +165,6 @@ describe('ProQuotaDialog', () => {
             message="free tier quota error"
             isTerminalQuotaError={true}
             isModelNotFoundError={false}
-            authType={AuthType.LOGIN_WITH_GOOGLE}
             tierName="Gemini Advanced Ultra"
             onChoice={mockOnChoice}
           />,
@@ -274,7 +227,7 @@ describe('ProQuotaDialog', () => {
     });
 
     describe('when it is a model not found error', () => {
-      it('should render switch, upgrade, and stop options for LOGIN_WITH_GOOGLE', async () => {
+      it('should render switch and stop options (no upgrade option)', async () => {
         const { unmount } = await render(
           <ProQuotaDialog
             failedModel="gemini-3-pro-preview"
@@ -282,45 +235,6 @@ describe('ProQuotaDialog', () => {
             message="You don't have access to gemini-3-pro-preview yet."
             isTerminalQuotaError={false}
             isModelNotFoundError={true}
-            authType={AuthType.LOGIN_WITH_GOOGLE}
-            onChoice={mockOnChoice}
-          />,
-        );
-
-        expect(RadioButtonSelect).toHaveBeenCalledWith(
-          expect.objectContaining({
-            items: [
-              {
-                label: 'Switch to gemini-2.5-pro',
-                value: 'retry_always',
-                key: 'retry_always',
-              },
-              {
-                label: 'Upgrade for higher limits',
-                value: 'upgrade',
-                key: 'upgrade',
-              },
-              {
-                label: 'Stop',
-                value: 'retry_later',
-                key: 'retry_later',
-              },
-            ],
-          }),
-          undefined,
-        );
-        unmount();
-      });
-
-      it('should NOT render upgrade option for USE_GEMINI', async () => {
-        const { unmount } = await render(
-          <ProQuotaDialog
-            failedModel="gemini-3-pro-preview"
-            fallbackModel="gemini-2.5-pro"
-            message="You don't have access to gemini-3-pro-preview yet."
-            isTerminalQuotaError={false}
-            isModelNotFoundError={true}
-            authType={AuthType.USE_GEMINI}
             onChoice={mockOnChoice}
           />,
         );

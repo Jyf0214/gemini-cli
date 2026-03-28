@@ -64,7 +64,6 @@ import {
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   DEFAULT_GEMINI_FLASH_MODEL,
   DEFAULT_GEMINI_MODEL,
-  DEFAULT_GEMINI_MODEL_AUTO,
   isAutoModel,
   isPreviewModel,
   isGemini2Model,
@@ -156,7 +155,6 @@ import { debugLogger } from '../utils/debugLogger.js';
 import { SkillManager, type SkillDefinition } from '../skills/skillManager.js';
 import { startupProfiler } from '../telemetry/startupProfiler.js';
 import type { AgentDefinition } from '../agents/types.js';
-import { fetchAdminControls } from '../code_assist/admin/admin_controls.js';
 import { isSubpath, resolveToRealPath } from '../utils/paths.js';
 import { InjectionService } from './injectionService.js';
 import { ExecutionLifecycleService } from '../services/executionLifecycleService.js';
@@ -1453,28 +1451,15 @@ export class Config implements McpContext, AgentLoopContext {
     baseUrl?: string,
     customHeaders?: Record<string, string>,
   ) {
-    // Reset availability service when switching auth
+    // 重置可用性服务
     this.modelAvailabilityService.reset();
 
-    // Vertex and Genai have incompatible encryption and sending history with
-    // thoughtSignature from Genai to Vertex will fail, we need to strip them
-    if (
-      this.contentGeneratorConfig?.authType === AuthType.USE_GEMINI &&
-      authMethod !== AuthType.USE_GEMINI
-    ) {
-      // Restore the conversation history to the new client
-      this._geminiClient.stripThoughtsFromHistory();
-    }
-
-    // Reset availability status when switching auth (e.g. from limited key to OAuth)
-    this.modelAvailabilityService.reset();
-
-    // Clear stale authType to ensure getGemini31LaunchedSync doesn't return stale results
-    // during the transition.
+    // 清除旧的 authType，确保在转换期间不会返回过时的结果
     if (this.contentGeneratorConfig) {
       this.contentGeneratorConfig.authType = undefined;
     }
 
+    // 创建内容生成器配置
     const newContentGeneratorConfig = await createContentGeneratorConfig(
       this,
       authMethod,
@@ -1487,66 +1472,11 @@ export class Config implements McpContext, AgentLoopContext {
       this,
       this.getSessionId(),
     );
-    // Only assign to instance properties after successful initialization
+    // 仅在初始化成功后赋值给实例属性
     this.contentGeneratorConfig = newContentGeneratorConfig;
 
-    // Initialize BaseLlmClient now that the ContentGenerator is available
+    // 初始化 BaseLlmClient
     this.baseLlmClient = new BaseLlmClient(this.contentGenerator, this);
-
-    const codeAssistServer = getCodeAssistServer(this);
-    const quotaPromise = codeAssistServer?.projectId
-      ? this.refreshUserQuota()
-      : Promise.resolve();
-
-    this.experimentsPromise = getExperiments(codeAssistServer)
-      .then((experiments) => {
-        this.setExperiments(experiments);
-        return experiments;
-      })
-      .catch((e) => {
-        debugLogger.error('Failed to fetch experiments', e);
-        return undefined;
-      });
-
-    await quotaPromise;
-
-    const authType = this.contentGeneratorConfig.authType;
-    if (
-      authType === AuthType.USE_GEMINI ||
-      authType === AuthType.USE_VERTEX_AI
-    ) {
-      this.setHasAccessToPreviewModel(true);
-    }
-
-    // Only reset when we have explicit "no access" (hasAccessToPreviewModel === false).
-    // When null (quota not fetched) or true, we preserve the saved model.
-    if (
-      isPreviewModel(this.model, this) &&
-      this.hasAccessToPreviewModel === false
-    ) {
-      this.setModel(DEFAULT_GEMINI_MODEL_AUTO);
-    }
-
-    // Fetch admin controls
-    const experiments = await this.experimentsPromise;
-
-    const adminControlsEnabled =
-      experiments?.flags[ExperimentFlags.ENABLE_ADMIN_CONTROLS]?.boolValue ??
-      false;
-    const adminControls = await fetchAdminControls(
-      codeAssistServer,
-      this.getRemoteAdminSettings(),
-      adminControlsEnabled,
-      (newSettings: AdminControlsSettings) => {
-        this.setRemoteAdminSettings(newSettings);
-        coreEvents.emitAdminSettingsChanged();
-      },
-    );
-    this.setRemoteAdminSettings(adminControls);
-
-    if ((await this.getProModelNoAccess()) && isAutoModel(this.model)) {
-      this.setModel(PREVIEW_GEMINI_FLASH_MODEL);
-    }
   }
 
   async getExperimentsAsync(): Promise<Experiments | undefined> {

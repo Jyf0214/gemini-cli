@@ -3,20 +3,19 @@
 exports[`AuthDialog > Snapshots > renders correctly with auth error 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│ ?Get started                                                                                     │
+│ ? 配置 OpenAI 兼容端点                                                                           │
 │                                                                                                  │
-│  How would you like to authenticate for this project?                                            │
+│   请配置 OpenAI 兼容的 API 端点以继续使用                                                        │
 │                                                                                                  │
-│  (selected) Sign in wit(not selected) Use Gemin(not selected)    (not selected) OpenAI           │
-│  Google                API Key                 Vertex AI         Compatible Endpoint             │
+│   (selected) OpenAI Compatible Endpoint                                                          │
 │                                                                                                  │
-│  Something went wrong                                                                            │
+│   Something went wrong                                                                           │
 │                                                                                                  │
-│  (Use Enter to select)                                                                           │
+│   (Use Enter to select)                                                                          │
 │                                                                                                  │
-│  Terms of Services and Privacy Notice for Gemini CLI                                             │
+│   Terms of Services and Privacy Notice for Gemini CLI                                            │
 │                                                                                                  │
-│  https://geminicli.com/docs/resources/tos-privacy/                                               │
+│   https://geminicli.com/docs/resources/tos-privacy/                                              │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
 "
@@ -25,31 +24,11 @@ exports[`AuthDialog > Snapshots > renders correctly with auth error 1`] = `
 exports[`AuthDialog > Snapshots > renders correctly with default props 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│ ?Get started                                                                                     │
+│ ? 配置 OpenAI 兼容端点                                                                           │
 │                                                                                                  │
-│  How would you like to authenticate for this project?                                            │
+│   请配置 OpenAI 兼容的 API 端点以继续使用                                                        │
 │                                                                                                  │
-│  (selected) Sign in wit(not selected) Use Gemin(not selected)    (not selected) OpenAI           │
-│  Google                API Key                 Vertex AI         Compatible Endpoint             │
-│                                                                                                  │
-│  (Use Enter to select)                                                                           │
-│                                                                                                  │
-│  Terms of Services and Privacy Notice for Gemini CLI                                             │
-│                                                                                                  │
-│  https://geminicli.com/docs/resources/tos-privacy/                                               │
-│                                                                                                  │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────╯
-"
-`;
-
-exports[`AuthDialog > Snapshots > renders correctly with enforced auth type 1`] = `
-"╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
-│                                                                                                  │
-│ ? Get started                                                                                    │
-│                                                                                                  │
-│   How would you like to authenticate for this project?                                           │
-│                                                                                                  │
-│   (selected) Use Gemini API Key                                                                  │
+│   (selected) OpenAI Compatible Endpoint                                                          │
 │                                                                                                  │
 │   (Use Enter to select)                                                                          │
 │                                                                                                  │

@@ -5,7 +5,6 @@
  */
 
 import {
-  AuthType,
   openBrowserSecurely,
   shouldLaunchBrowser,
   UPGRADE_URL_PAGE,
@@ -14,34 +13,23 @@ import { isUltraTier } from '../../utils/tierUtils.js';
 import { CommandKind, type SlashCommand } from './types.js';
 
 /**
- * Command to open the upgrade page for Gemini Code Assist.
- * Only intended to be shown/available when the user is logged in with Google.
+ * 命令：打开 Gemini Code Assist 升级页面
+ * 仅在用户通过 Google 登录时显示/可用
  */
 export const upgradeCommand: SlashCommand = {
   name: 'upgrade',
   kind: CommandKind.BUILT_IN,
-  description: 'Upgrade your Gemini Code Assist tier for higher limits',
+  description: '升级您的 Gemini Code Assist 套餐以获得更高限额',
   autoExecute: true,
   action: async (context) => {
     const config = context.services.agentContext?.config;
-    const authType = config?.getContentGeneratorConfig()?.authType;
-    if (authType !== AuthType.LOGIN_WITH_GOOGLE) {
-      // This command should ideally be hidden if not logged in with Google,
-      // but we add a safety check here just in case.
-      return {
-        type: 'message',
-        messageType: 'error',
-        content:
-          'The /upgrade command is only available when logged in with Google.',
-      };
-    }
-
+    // 由于已移除其他认证类型判断，此命令始终可用
     const tierName = config?.getUserTierName();
     if (isUltraTier(tierName)) {
       return {
         type: 'message',
         messageType: 'info',
-        content: `You are already on the highest tier: ${tierName}.`,
+        content: `您已在最高套餐: ${tierName}。`,
       };
     }
 
@@ -49,7 +37,7 @@ export const upgradeCommand: SlashCommand = {
       return {
         type: 'message',
         messageType: 'info',
-        content: `Please open this URL in a browser: ${UPGRADE_URL_PAGE}`,
+        content: `请在浏览器中打开此 URL: ${UPGRADE_URL_PAGE}`,
       };
     }
 
@@ -59,7 +47,7 @@ export const upgradeCommand: SlashCommand = {
       return {
         type: 'message',
         messageType: 'error',
-        content: `Failed to open upgrade page: ${error instanceof Error ? error.message : String(error)}`,
+        content: `打开升级页面失败: ${error instanceof Error ? error.message : String(error)}`,
       };
     }
 

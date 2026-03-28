@@ -23,7 +23,6 @@ import type {
   KeychainAvailabilityEvent,
   TokenStorageInitializationEvent,
 } from './types.js';
-import { AuthType } from '../core/contentGenerator.js';
 import { getCommonAttributes } from './telemetryAttributes.js';
 import { sanitizeHookName } from './sanitize.js';
 
@@ -1121,18 +1120,12 @@ export function getConventionAttributes(event: {
 }
 
 /**
- * Maps authentication type to GenAI provider name following OpenTelemetry conventions
+ * 将认证类型映射到 GenAI 提供者名称，遵循 OpenTelemetry 规范
+ * 注意：当前仅支持 OpenAI 兼容端点
  */
-function getGenAiProvider(authType?: string): GenAiProviderName {
-  switch (authType) {
-    case AuthType.USE_VERTEX_AI:
-    case AuthType.COMPUTE_ADC:
-    case AuthType.LOGIN_WITH_GOOGLE:
-      return GenAiProviderName.GCP_VERTEX_AI;
-    case AuthType.USE_GEMINI:
-    default:
-      return GenAiProviderName.GCP_GEN_AI;
-  }
+function getGenAiProvider(_authType?: string): GenAiProviderName {
+  // 当前仅支持 OpenAI 兼容端点，返回默认的 GenAI 提供者
+  return GenAiProviderName.GCP_GEN_AI;
 }
 
 function getGenAiOperationName(): GenAiOperationName {

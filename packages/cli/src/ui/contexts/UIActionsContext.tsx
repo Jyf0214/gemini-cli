@@ -72,8 +72,6 @@ export interface UIActions {
   setQueueErrorMessage: (message: string | null) => void;
   addMessage: (message: string) => void;
   popAllMessages: () => string | undefined;
-  handleApiKeySubmit: (apiKey: string) => Promise<void>;
-  handleApiKeyCancel: () => void;
   handleOpenAICompatibleAuthSubmit: (
     endpoint: string,
     apiKey: string,
@@ -90,7 +88,6 @@ export interface UIActions {
   dismissBackgroundShell: (pid: number) => Promise<void>;
   setActiveBackgroundShellPid: (pid: number) => void;
   setIsBackgroundShellListOpen: (isOpen: boolean) => void;
-  setAuthContext: (context: { requiresRestart?: boolean }) => void;
   onHintInput: (char: string) => void;
   onHintBackspace: () => void;
   onHintClear: () => void;

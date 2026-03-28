@@ -20,7 +20,6 @@ import {
   ModelSlashCommandEvent,
   logModelSlashCommand,
   getDisplayString,
-  AuthType,
   PREVIEW_GEMINI_3_1_CUSTOM_TOOLS_MODEL,
   isProModel,
   UserTierId,
@@ -29,7 +28,6 @@ import { useKeypress } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
 import { DescriptiveRadioButtonSelect } from './shared/DescriptiveRadioButtonSelect.js';
 import { ConfigContext } from '../contexts/ConfigContext.js';
-import { useSettings } from '../contexts/SettingsContext.js';
 
 interface ModelDialogProps {
   onClose: () => void;
@@ -37,7 +35,6 @@ interface ModelDialogProps {
 
 export function ModelDialog({ onClose }: ModelDialogProps): React.JSX.Element {
   const config = useContext(ConfigContext);
-  const settings = useSettings();
   const [hasAccessToProModel, setHasAccessToProModel] = useState<boolean>(
     () => !(config?.getProModelNoAccessSync() ?? false),
   );
@@ -65,9 +62,8 @@ export function ModelDialog({ onClose }: ModelDialogProps): React.JSX.Element {
   const useGemini31 = config?.getGemini31LaunchedSync?.() ?? false;
   const useGemini31FlashLite =
     config?.getGemini31FlashLiteLaunchedSync?.() ?? false;
-  const selectedAuthType = settings.merged.security.auth.selectedType;
-  const useCustomToolModel =
-    useGemini31 && selectedAuthType === AuthType.USE_GEMINI;
+  // 是否使用自定义工具模型（始终为 false，因为已移除认证类型判断）
+  const useCustomToolModel = false;
 
   const manualModelSelected = useMemo(() => {
     if (

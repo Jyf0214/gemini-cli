@@ -9,50 +9,20 @@ import { loadEnvironment, loadSettings } from './settings.js';
 
 export function validateAuthMethod(authMethod: string): string | null {
   loadEnvironment(loadSettings().merged, process.cwd());
-  if (
-    authMethod === AuthType.LOGIN_WITH_GOOGLE ||
-    authMethod === AuthType.COMPUTE_ADC
-  ) {
-    return null;
-  }
 
-  if (authMethod === AuthType.USE_GEMINI) {
-    if (!process.env['GEMINI_API_KEY']) {
-      return (
-        'When using Gemini API, you must specify the GEMINI_API_KEY environment variable.\n' +
-        'Update your environment and try again (no reload needed if using .env)!'
-      );
-    }
-    return null;
-  }
-
-  if (authMethod === AuthType.USE_VERTEX_AI) {
-    const hasVertexProjectLocationConfig =
-      !!process.env['GOOGLE_CLOUD_PROJECT'] &&
-      !!process.env['GOOGLE_CLOUD_LOCATION'];
-    const hasGoogleApiKey = !!process.env['GOOGLE_API_KEY'];
-    if (!hasVertexProjectLocationConfig && !hasGoogleApiKey) {
-      return (
-        'When using Vertex AI, you must specify either:\n' +
-        '• GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION environment variables.\n' +
-        '• GOOGLE_API_KEY environment variable (if using express mode).\n' +
-        'Update your environment and try again (no reload needed if using .env)!'
-      );
-    }
-    return null;
-  }
-
+  // 仅支持 OpenAI 兼容端点认证方式
   if (authMethod === AuthType.OPENAI_COMPATIBLE) {
     const settings = loadSettings().merged;
     const endpoint = settings.security?.auth?.openaiEndpoint;
     if (!endpoint) {
       return (
-        'When using OpenAI Compatible API, you must configure the endpoint URL.\n' +
-        'Please run the auth flow again to provide the endpoint, API key, and model.'
+        '使用 OpenAI 兼容 API 时，必须配置端点 URL。\n' +
+        '请重新运行认证流程以提供端点、API 密钥和模型。'
       );
     }
     return null;
   }
 
-  return 'Invalid auth method selected.';
+  // 其他认证方式不支持，返回错误提示
+  return '当前仅支持 OpenAI 兼容端点认证方式。请选择 OpenAI Compatible 作为认证方法。';
 }

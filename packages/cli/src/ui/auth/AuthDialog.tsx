@@ -5,7 +5,7 @@
  */
 
 import type React from 'react';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { Box, Text } from 'ink';
 import { theme } from '../semantic-colors.js';
 import { RadioButtonSelect } from '../components/shared/RadioButtonSelect.js';
@@ -14,79 +14,32 @@ import {
   type LoadableSettingScope,
   type LoadedSettings,
 } from '../../config/settings.js';
-import {
-  AuthType,
-  clearCachedCredentialFile,
-  type Config,
-} from '@google/gemini-cli-core';
+import { AuthType, clearCachedCredentialFile } from '@google/gemini-cli-core';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { AuthState } from '../types.js';
 import { validateAuthMethodWithSettings } from './useAuth.js';
-import { relaunchApp } from '../../utils/processUtils.js';
 
 interface AuthDialogProps {
-  config: Config;
   settings: LoadedSettings;
   setAuthState: (state: AuthState) => void;
   authError: string | null;
   onAuthError: (error: string | null) => void;
-  setAuthContext: (context: { requiresRestart?: boolean }) => void;
 }
 
 export function AuthDialog({
-  config,
   settings,
   setAuthState,
   authError,
   onAuthError,
-  setAuthContext,
 }: AuthDialogProps): React.JSX.Element {
-  const [exiting, setExiting] = useState(false);
-  let items = [
-    {
-      label: 'Sign in with Google',
-      value: AuthType.LOGIN_WITH_GOOGLE,
-      key: AuthType.LOGIN_WITH_GOOGLE,
-    },
-    ...(process.env['CLOUD_SHELL'] === 'true'
-      ? [
-          {
-            label: 'Use Cloud Shell user credentials',
-            value: AuthType.COMPUTE_ADC,
-            key: AuthType.COMPUTE_ADC,
-          },
-        ]
-      : process.env['GEMINI_CLI_USE_COMPUTE_ADC'] === 'true'
-        ? [
-            {
-              label: 'Use metadata server application default credentials',
-              value: AuthType.COMPUTE_ADC,
-              key: AuthType.COMPUTE_ADC,
-            },
-          ]
-        : []),
-    {
-      label: 'Use Gemini API Key',
-      value: AuthType.USE_GEMINI,
-      key: AuthType.USE_GEMINI,
-    },
-    {
-      label: 'Vertex AI',
-      value: AuthType.USE_VERTEX_AI,
-      key: AuthType.USE_VERTEX_AI,
-    },
+  // 登录选项仅保留 OpenAI 兼容端点
+  const items = [
     {
       label: 'OpenAI Compatible Endpoint',
       value: AuthType.OPENAI_COMPATIBLE,
       key: AuthType.OPENAI_COMPATIBLE,
     },
   ];
-
-  if (settings.merged.security.auth.enforcedType) {
-    items = items.filter(
-      (item) => item.value === settings.merged.security.auth.enforcedType,
-    );
-  }
 
   let defaultAuthType = null;
   const defaultAuthTypeEnv = process.env['GEMINI_DEFAULT_AUTH_TYPE'];
@@ -99,7 +52,7 @@ export function AuthDialog({
     defaultAuthType = defaultAuthTypeEnv as AuthType;
   }
 
-  let initialAuthIndex = items.findIndex((item) => {
+  const initialAuthIndex = items.findIndex((item) => {
     if (settings.merged.security.auth.selectedType) {
       return item.value === settings.merged.security.auth.selectedType;
     }
@@ -108,46 +61,15 @@ export function AuthDialog({
       return item.value === defaultAuthType;
     }
 
-    if (process.env['GEMINI_API_KEY']) {
-      return item.value === AuthType.USE_GEMINI;
-    }
-
-    return item.value === AuthType.LOGIN_WITH_GOOGLE;
+    // 默认选择 OpenAI Compatible Endpoint
+    return item.value === AuthType.OPENAI_COMPATIBLE;
   });
-  if (settings.merged.security.auth.enforcedType) {
-    initialAuthIndex = 0;
-  }
-
   const onSelect = useCallback(
     async (authType: AuthType | undefined, scope: LoadableSettingScope) => {
-      if (exiting) {
-        return;
-      }
       if (authType) {
-        if (authType === AuthType.LOGIN_WITH_GOOGLE) {
-          setAuthContext({ requiresRestart: true });
-        } else {
-          setAuthContext({});
-        }
         await clearCachedCredentialFile();
 
         settings.setValue(scope, 'security.auth.selectedType', authType);
-        if (
-          authType === AuthType.LOGIN_WITH_GOOGLE &&
-          config.isBrowserLaunchSuppressed()
-        ) {
-          setExiting(true);
-          setTimeout(relaunchApp, 100);
-          return;
-        }
-
-        if (authType === AuthType.USE_GEMINI) {
-          // Always show the API key input dialog so the user can
-          // explicitly enter or confirm their key, regardless of
-          // whether GEMINI_API_KEY env var or a stored key exists.
-          setAuthState(AuthState.AwaitingApiKeyInput);
-          return;
-        }
 
         if (authType === AuthType.OPENAI_COMPATIBLE) {
           setAuthState(AuthState.AwaitingOpenAICompatibleAuthInput);
@@ -156,7 +78,7 @@ export function AuthDialog({
       }
       setAuthState(AuthState.Unauthenticated);
     },
-    [settings, config, setAuthState, exiting, setAuthContext],
+    [settings, setAuthState],
   );
 
   const handleAuthSelect = (authMethod: AuthType) => {
@@ -193,23 +115,6 @@ export function AuthDialog({
     { isActive: true },
   );
 
-  if (exiting) {
-    return (
-      <Box
-        borderStyle="round"
-        borderColor={theme.ui.focus}
-        flexDirection="row"
-        padding={1}
-        width="100%"
-        alignItems="flex-start"
-      >
-        <Text color={theme.text.primary}>
-          Logging in with Google... Restarting Gemini CLI to continue.
-        </Text>
-      </Box>
-    );
-  }
-
   return (
     <Box
       borderStyle="round"
@@ -222,11 +127,11 @@ export function AuthDialog({
       <Text color={theme.text.accent}>? </Text>
       <Box flexDirection="column" flexGrow={1}>
         <Text bold color={theme.text.primary}>
-          Get started
+          配置 OpenAI 兼容端点
         </Text>
         <Box marginTop={1}>
           <Text color={theme.text.primary}>
-            How would you like to authenticate for this project?
+            请配置 OpenAI 兼容的 API 端点以继续使用
           </Text>
         </Box>
         <Box marginTop={1}>

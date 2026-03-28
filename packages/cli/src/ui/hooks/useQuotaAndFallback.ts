@@ -5,7 +5,6 @@
  */
 
 import {
-  AuthType,
   type Config,
   type FallbackModelHandler,
   type FallbackIntent,
@@ -74,8 +73,6 @@ export function useQuotaAndFallback({
       fallbackModel,
       error,
     ): Promise<FallbackIntent | null> => {
-      const contentGeneratorConfig = config.getContentGeneratorConfig();
-
       let message: string;
       let isTerminalQuotaError = false;
       let isModelNotFoundError = false;
@@ -128,9 +125,6 @@ export function useQuotaAndFallback({
             : null,
           `/stats model for usage details`,
           `/model to switch models.`,
-          contentGeneratorConfig?.authType === AuthType.LOGIN_WITH_GOOGLE
-            ? `/auth to switch to API key.`
-            : null,
         ].filter(Boolean);
         message = messageLines.join('\n');
       } else if (error instanceof ModelNotFoundError) {
@@ -184,7 +178,6 @@ export function useQuotaAndFallback({
             message,
             isTerminalQuotaError,
             isModelNotFoundError,
-            authType: contentGeneratorConfig?.authType,
           });
         },
       );

@@ -16,7 +16,6 @@ import {
   isNightly,
   startupProfiler,
   getAdminErrorMessage,
-  AuthType,
 } from '@google/gemini-cli-core';
 import { aboutCommand } from '../ui/commands/aboutCommand.js';
 import { agentsCommand } from '../ui/commands/agentsCommand.js';
@@ -60,7 +59,6 @@ import { shellsCommand } from '../ui/commands/shellsCommand.js';
 import { vimCommand } from '../ui/commands/vimCommand.js';
 import { setupGithubCommand } from '../ui/commands/setupGithubCommand.js';
 import { terminalSetupCommand } from '../ui/commands/terminalSetupCommand.js';
-import { upgradeCommand } from '../ui/commands/upgradeCommand.js';
 
 /**
  * Loads the core, hard-coded slash commands that are an integral part
@@ -225,10 +223,6 @@ export class BuiltinCommandLoader implements ICommandLoader {
       vimCommand,
       setupGithubCommand,
       terminalSetupCommand,
-      ...(this.config?.getContentGeneratorConfig()?.authType ===
-      AuthType.LOGIN_WITH_GOOGLE
-        ? [upgradeCommand]
-        : []),
     ];
     handle?.end();
     return allDefinitions.filter((cmd): cmd is SlashCommand => cmd !== null);

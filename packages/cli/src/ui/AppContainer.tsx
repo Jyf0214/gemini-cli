@@ -65,7 +65,6 @@ import {
   refreshServerHierarchicalMemory,
   flattenMemory,
   type MemoryChangedPayload,
-  writeToStdout,
   disableMouseEvents,
   enterAlternateScreen,
   enableMouseEvents,
@@ -78,7 +77,6 @@ import {
   type ConsentRequestPayload,
   type AgentsDiscoveredPayload,
   ChangeAuthRequestedError,
-  ProjectIdRequiredError,
   buildUserSteeringHintPrompt,
   logBillingEvent,
   ApiKeyUpdatedEvent,
@@ -157,7 +155,6 @@ import {
   QUEUE_ERROR_DISPLAY_DURATION_MS,
   EXPAND_HINT_DURATION_MS,
 } from './constants.js';
-import { LoginWithGoogleRestartDialog } from './auth/LoginWithGoogleRestartDialog.js';
 import { OpenAIAuthDialog } from './auth/OpenAIAuthDialog.js';
 import { NewAgentsChoice } from './components/NewAgentsNotification.js';
 import { isSlashCommand } from './utils/commandUtils.js';
@@ -657,7 +654,7 @@ export const AppContainer = (props: AppContainerProps) => {
     authError,
     onAuthError,
     apiKeyDefaultValue,
-    reloadApiKey,
+    reloadApiKey: _reloadApiKey,
     accountSuspensionInfo,
     setAccountSuspensionInfo,
   } = useAuthCommand(
@@ -666,21 +663,11 @@ export const AppContainer = (props: AppContainerProps) => {
     initializationResult.authError,
     initializationResult.accountSuspensionInfo,
   );
-  const [authContext, setAuthContext] = useState<{ requiresRestart?: boolean }>(
-    {},
-  );
   const [openAiCompatibleDefaults, setOpenAiCompatibleDefaults] = useState<{
     endpoint: string;
     apiKey: string;
     model: string;
   }>({ endpoint: '', apiKey: '', model: '' });
-
-  useEffect(() => {
-    if (authState === AuthState.Authenticated && authContext.requiresRestart) {
-      setAuthState(AuthState.AwaitingGoogleLoginRestart);
-      setAuthContext({});
-    }
-  }, [authState, authContext, setAuthState]);
 
   const {
     proQuotaRequest,
@@ -705,10 +692,10 @@ export const AppContainer = (props: AppContainerProps) => {
 
   // Derive auth state variables for backward compatibility with UIStateContext
   const isAuthDialogOpen = authState === AuthState.Updating;
-  // TODO: Consider handling other auth types that should also skip the blocking screen
+  // 简化后的认证状态判断，仅处理 OPENAI_COMPATIBLE
   const isAuthenticating =
     authState === AuthState.Unauthenticated &&
-    settings.merged.security.auth.selectedType !== AuthType.USE_GEMINI;
+    settings.merged.security.auth.selectedType === AuthType.OPENAI_COMPATIBLE;
 
   // Session browser and resume functionality
   const isGeminiClientInitialized = config.getGeminiClient()?.isInitialized();
@@ -738,16 +725,19 @@ export const AppContainer = (props: AppContainerProps) => {
   );
 
   // Create handleAuthSelect wrapper for backward compatibility
+  // 简化后的认证选择函数，仅处理 OPENAI_COMPATIBLE
   const handleAuthSelect = useCallback(
     async (authType: AuthType | undefined, scope: LoadableSettingScope) => {
       if (authType) {
         const previousAuthType =
           config.getContentGeneratorConfig()?.authType ?? 'unknown';
-        if (authType === AuthType.LOGIN_WITH_GOOGLE) {
-          setAuthContext({ requiresRestart: true });
-        } else {
-          setAuthContext({});
+
+        // 仅支持 OPENAI_COMPATIBLE 认证类型
+        if (authType !== AuthType.OPENAI_COMPATIBLE) {
+          onAuthError('仅支持 OpenAI 兼容端点认证');
+          return;
         }
+
         await clearCachedCredentialFile();
         settings.setValue(scope, 'security.auth.selectedType', authType);
 
@@ -763,63 +753,16 @@ export const AppContainer = (props: AppContainerProps) => {
           if (e instanceof ChangeAuthRequestedError) {
             return;
           }
-          if (e instanceof ProjectIdRequiredError) {
-            // OAuth succeeded but account setup requires project ID
-            // Show the error message directly without "Failed to authenticate" prefix
-            onAuthError(getErrorMessage(e));
-            return;
-          }
           onAuthError(
-            `Failed to authenticate: ${e instanceof Error ? e.message : String(e)}`,
+            `认证失败: ${e instanceof Error ? e.message : String(e)}`,
           );
           return;
-        }
-
-        if (
-          authType === AuthType.LOGIN_WITH_GOOGLE &&
-          config.isBrowserLaunchSuppressed()
-        ) {
-          writeToStdout(`
-----------------------------------------------------------------
-Logging in with Google... Restarting Gemini CLI to continue.
-----------------------------------------------------------------
-          `);
-          await relaunchApp();
         }
       }
       setAuthState(AuthState.Authenticated);
     },
-    [settings, config, setAuthState, onAuthError, setAuthContext],
+    [settings, config, setAuthState, onAuthError],
   );
-
-  const handleApiKeySubmit = useCallback(
-    async (apiKey: string) => {
-      try {
-        onAuthError(null);
-        if (!apiKey.trim() && apiKey.length > 1) {
-          onAuthError(
-            'API key cannot be empty string with length greater than 1.',
-          );
-          return;
-        }
-
-        await saveApiKey(apiKey);
-        await reloadApiKey();
-        await config.refreshAuth(AuthType.USE_GEMINI);
-        setAuthState(AuthState.Authenticated);
-      } catch (e) {
-        onAuthError(
-          `Failed to save API key: ${e instanceof Error ? e.message : String(e)}`,
-        );
-      }
-    },
-    [setAuthState, onAuthError, reloadApiKey, config],
-  );
-
-  const handleApiKeyCancel = useCallback(() => {
-    // Go back to auth method selection
-    setAuthState(AuthState.Updating);
-  }, [setAuthState]);
 
   const handleOpenAICompatibleAuthSubmit = useCallback(
     async (endpoint: string, apiKey: string, model: string) => {
@@ -864,7 +807,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
         );
       }
     },
-    [setAuthState, onAuthError, reloadApiKey, config, settings],
+    [setAuthState, onAuthError, config, settings],
   );
 
   const handleOpenAICompatibleAuthCancel = useCallback(() => {
@@ -895,13 +838,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
       settings.merged.security.auth.selectedType &&
       !settings.merged.security.auth.useExternal
     ) {
-      // We skip validation for Gemini API key here because it might be stored
-      // in the keychain, which we can't check synchronously.
-      // The useAuth hook handles validation for this case.
-      if (settings.merged.security.auth.selectedType === AuthType.USE_GEMINI) {
-        return;
-      }
-
+      // 简化后的认证验证，仅验证 OPENAI_COMPATIBLE
       const error = validateAuthMethod(
         settings.merged.security.auth.selectedType,
       );
@@ -2273,7 +2210,6 @@ Logging in with Google... Restarting Gemini CLI to continue.
       authError,
       accountSuspensionInfo,
       isAuthDialogOpen,
-      isAwaitingApiKeyInput: authState === AuthState.AwaitingApiKeyInput,
       isAwaitingOpenAICompatibleAuthInput:
         authState === AuthState.AwaitingOpenAICompatibleAuthInput,
       apiKeyDefaultValue,
@@ -2564,8 +2500,6 @@ Logging in with Google... Restarting Gemini CLI to continue.
       setQueueErrorMessage,
       addMessage,
       popAllMessages,
-      handleApiKeySubmit,
-      handleApiKeyCancel,
       handleOpenAICompatibleAuthSubmit,
       handleOpenAICompatibleAuthCancel,
       setBannerVisible,
@@ -2578,7 +2512,6 @@ Logging in with Google... Restarting Gemini CLI to continue.
       dismissBackgroundShell,
       setActiveBackgroundShellPid,
       setIsBackgroundShellListOpen,
-      setAuthContext,
       onHintInput: () => {},
       onHintBackspace: () => {},
       onHintClear: () => {},
@@ -2658,8 +2591,6 @@ Logging in with Google... Restarting Gemini CLI to continue.
       setQueueErrorMessage,
       addMessage,
       popAllMessages,
-      handleApiKeySubmit,
-      handleApiKeyCancel,
       handleOpenAICompatibleAuthSubmit,
       handleOpenAICompatibleAuthCancel,
       setBannerVisible,
@@ -2672,7 +2603,6 @@ Logging in with Google... Restarting Gemini CLI to continue.
       dismissBackgroundShell,
       setActiveBackgroundShellPid,
       setIsBackgroundShellListOpen,
-      setAuthContext,
       setAccountSuspensionInfo,
       newAgents,
       config,
@@ -2690,18 +2620,6 @@ Logging in with Google... Restarting Gemini CLI to continue.
         defaultEndpoint={openAiCompatibleDefaults.endpoint}
         defaultApiKey={openAiCompatibleDefaults.apiKey}
         defaultModel={openAiCompatibleDefaults.model}
-      />
-    );
-  }
-
-  if (authState === AuthState.AwaitingGoogleLoginRestart) {
-    return (
-      <LoginWithGoogleRestartDialog
-        onDismiss={() => {
-          setAuthContext({});
-          setAuthState(AuthState.Updating);
-        }}
-        config={config}
       />
     );
   }

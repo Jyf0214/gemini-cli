@@ -8,11 +8,7 @@ import type React from 'react';
 import { useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { theme } from '../semantic-colors.js';
-import {
-  type Config,
-  UserAccountManager,
-  AuthType,
-} from '@google/gemini-cli-core';
+import { type Config, UserAccountManager } from '@google/gemini-cli-core';
 import { isUltraTier } from '../../utils/tierUtils.js';
 
 interface UserIdentityProps {
@@ -42,22 +38,16 @@ export const UserIdentity: React.FC<UserIdentityProps> = ({ config }) => {
 
   return (
     <Box flexDirection="column">
-      {/* User Email /auth */}
+      {/* 用户邮箱 /auth */}
       <Box>
         <Text color={theme.text.primary} wrap="truncate-end">
-          {authType === AuthType.LOGIN_WITH_GOOGLE ? (
-            <Text>
-              <Text bold>Signed in with Google{email ? ':' : ''}</Text>
-              {email ? ` ${email}` : ''}
-            </Text>
-          ) : (
-            `Authenticated with ${authType}`
-          )}
+          <Text bold>已认证{email ? ':' : ''}</Text>
+          {email ? ` ${email}` : ''}
         </Text>
         <Text color={theme.text.secondary}> /auth</Text>
       </Box>
 
-      {/* Tier Name /upgrade */}
+      {/* 套餐名称 /upgrade */}
       {tierName && (
         <Box>
           <Text color={theme.text.primary} wrap="truncate-end">

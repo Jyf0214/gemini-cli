@@ -14,7 +14,6 @@ import { SettingsDialog } from './SettingsDialog.js';
 import { AuthInProgress } from '../auth/AuthInProgress.js';
 import { AuthDialog } from '../auth/AuthDialog.js';
 import { BannedAccountDialog } from '../auth/BannedAccountDialog.js';
-import { ApiAuthDialog } from '../auth/ApiAuthDialog.js';
 import { EditorSettingsDialog } from './EditorSettingsDialog.js';
 import { PrivacyNotice } from '../privacy/PrivacyNotice.js';
 import { ProQuotaDialog } from './ProQuotaDialog.js';
@@ -86,7 +85,6 @@ export const DialogManager = ({
         isModelNotFoundError={
           !!uiState.quota.proQuotaRequest.isModelNotFoundError
         }
-        authType={uiState.quota.proQuotaRequest.authType}
         tierName={config?.getUserTierName()}
         onChoice={uiActions.handleProQuotaChoice}
       />
@@ -290,30 +288,14 @@ export const DialogManager = ({
       />
     );
   }
-  if (uiState.isAwaitingApiKeyInput) {
-    return (
-      <Box flexDirection="column">
-        <ApiAuthDialog
-          key={uiState.apiKeyDefaultValue}
-          onSubmit={uiActions.handleApiKeySubmit}
-          onCancel={uiActions.handleApiKeyCancel}
-          error={uiState.authError}
-          defaultValue={uiState.apiKeyDefaultValue}
-        />
-      </Box>
-    );
-  }
-
   if (uiState.isAuthDialogOpen) {
     return (
       <Box flexDirection="column">
         <AuthDialog
-          config={config}
           settings={settings}
           setAuthState={uiActions.setAuthState}
           authError={uiState.authError}
           onAuthError={uiActions.onAuthError}
-          setAuthContext={uiActions.setAuthContext}
         />
       </Box>
     );

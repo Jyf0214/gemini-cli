@@ -9,24 +9,25 @@ import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
 import type { UserTierId } from '../code_assist/types.js';
 import { AuthType } from '../core/contentGenerator.js';
 
-const RATE_LIMIT_ERROR_MESSAGE_USE_GEMINI =
-  '\nPlease wait and try again later. To increase your limits, request a quota increase through AI Studio, or switch to another /auth method';
-const RATE_LIMIT_ERROR_MESSAGE_VERTEX =
-  '\nPlease wait and try again later. To increase your limits, request a quota increase through Vertex, or switch to another /auth method';
+// 注意：当前仅支持 OpenAI 兼容端点认证
+const RATE_LIMIT_ERROR_MESSAGE_OPENAI_COMPATIBLE =
+  '\n请稍后再试。如需增加限制，请通过 API 提供商请求配额增加，或切换到其他 /auth 方法';
 const getRateLimitErrorMessageDefault = (
   fallbackModel: string = DEFAULT_GEMINI_FLASH_MODEL,
 ) =>
-  `\nPossible quota limitations in place or slow response times detected. Switching to the ${fallbackModel} model for the rest of this session.`;
+  `\n可能存在配额限制或检测到响应时间过慢。在本次会话的剩余时间里，将切换到 ${fallbackModel} 模型。`;
 
+/**
+ * 获取速率限制错误消息
+ * 注意：当前仅支持 OpenAI 兼容端点认证
+ */
 function getRateLimitMessage(
   authType?: AuthType,
   fallbackModel?: string,
 ): string {
   switch (authType) {
-    case AuthType.USE_GEMINI:
-      return RATE_LIMIT_ERROR_MESSAGE_USE_GEMINI;
-    case AuthType.USE_VERTEX_AI:
-      return RATE_LIMIT_ERROR_MESSAGE_VERTEX;
+    case AuthType.OPENAI_COMPATIBLE:
+      return RATE_LIMIT_ERROR_MESSAGE_OPENAI_COMPATIBLE;
     default:
       return getRateLimitErrorMessageDefault(fallbackModel);
   }

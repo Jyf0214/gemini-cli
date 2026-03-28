@@ -19,7 +19,6 @@ import {
   UserPromptEvent,
   coreEvents,
   CoreEvent,
-  getOauthClient,
   patchStdio,
   writeToStdout,
   writeToStderr,
@@ -310,21 +309,13 @@ export async function main() {
     validateDnsResolutionOrder(settings.merged.advanced.dnsResolutionOrder),
   );
 
-  // Set a default auth type if one isn't set or is set to a legacy type
-  if (
-    !settings.merged.security.auth.selectedType ||
-    settings.merged.security.auth.selectedType === AuthType.LEGACY_CLOUD_SHELL
-  ) {
-    if (
-      process.env['CLOUD_SHELL'] === 'true' ||
-      process.env['GEMINI_CLI_USE_COMPUTE_ADC'] === 'true'
-    ) {
-      settings.setValue(
-        SettingScope.User,
-        'security.auth.selectedType',
-        AuthType.COMPUTE_ADC,
-      );
-    }
+  // 仅支持 OpenAI 兼容端点认证方式，如果未设置认证类型则默认设置为 OPENAI_COMPATIBLE
+  if (!settings.merged.security.auth.selectedType) {
+    settings.setValue(
+      SettingScope.User,
+      'security.auth.selectedType',
+      AuthType.OPENAI_COMPATIBLE,
+    );
   }
 
   const partialConfig = await loadCliConfig(settings.merged, sessionId, argv, {
@@ -332,9 +323,8 @@ export async function main() {
   });
   adminControlsListner.setConfig(partialConfig);
 
-  // Refresh auth to fetch remote admin settings from CCPA and before entering
-  // the sandbox because the sandbox will interfere with the Oauth2 web
-  // redirect.
+  // 刷新认证以获取远程管理员设置（来自 CCPA），并在进入沙箱之前完成
+  // 因为沙箱会干扰认证流程
   let initialAuthFailed = false;
   if (!settings.merged.security.auth.useExternal && !argv.isCommand) {
     try {
@@ -363,14 +353,13 @@ export async function main() {
       }
     } catch (err) {
       if (err instanceof ValidationCancelledError) {
-        // User cancelled verification, exit immediately.
+        // 用户取消验证，立即退出
         await runExitCleanup();
         process.exit(ExitCodes.SUCCESS);
       }
 
-      // If validation is required, we don't treat it as a fatal failure.
-      // We allow the app to start, and the React-based ValidationDialog
-      // will handle it.
+      // 如果需要验证，我们不将其视为致命错误
+      // 允许应用启动，React 验证对话框会处理它
       if (!(err instanceof ValidationRequiredError)) {
         debugLogger.error('Error authenticating:', err);
         initialAuthFailed = true;
@@ -379,12 +368,12 @@ export async function main() {
   }
 
   const remoteAdminSettings = partialConfig.getRemoteAdminSettings();
-  // Set remote admin settings if returned from CCPA.
+  // 设置从 CCPA 返回的远程管理员设置
   if (remoteAdminSettings) {
     settings.setRemoteAdminSettings(remoteAdminSettings);
   }
 
-  // Run deferred command now that we have admin settings.
+  // 现在有了管理员设置，运行延迟命令
   await runDeferredCommand(settings.merged);
 
   // hop into sandbox if we are outside and sandboxing is enabled
@@ -547,15 +536,6 @@ export async function main() {
     const initAppHandle = startupProfiler.start('initialize_app');
     const initializationResult = await initializeApp(config, settings);
     initAppHandle?.end();
-
-    if (
-      settings.merged.security.auth.selectedType ===
-        AuthType.LOGIN_WITH_GOOGLE &&
-      config.isBrowserLaunchSuppressed()
-    ) {
-      // Do oauth before app renders to make copying the link possible.
-      await getOauthClient(settings.merged.security.auth.selectedType, config);
-    }
 
     if (config.getAcpMode()) {
       return runAcpClient(config, settings, argv);

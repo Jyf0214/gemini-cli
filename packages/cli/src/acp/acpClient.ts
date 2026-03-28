@@ -139,33 +139,12 @@ export class GeminiAgent {
 
     const authMethods = [
       {
-        id: AuthType.LOGIN_WITH_GOOGLE,
-        name: 'Log in with Google',
-        description: 'Log in with your Google account',
-      },
-      {
-        id: AuthType.USE_GEMINI,
-        name: 'Gemini API key',
-        description: 'Use an API key with Gemini Developer API',
+        id: AuthType.OPENAI_COMPATIBLE,
+        name: 'OpenAI 兼容端点',
+        description: '使用 OpenAI 兼容的 API 端点',
         _meta: {
           'api-key': {
-            provider: 'google',
-          },
-        },
-      },
-      {
-        id: AuthType.USE_VERTEX_AI,
-        name: 'Vertex AI',
-        description: 'Use an API key with Vertex AI GenAI API',
-      },
-      {
-        id: AuthType.GATEWAY,
-        name: 'AI API Gateway',
-        description: 'Use a custom AI API Gateway',
-        _meta: {
-          gateway: {
-            protocol: 'google',
-            restartRequired: 'false',
+            provider: 'openai',
           },
         },
       },
@@ -273,7 +252,8 @@ export class GeminiAgent {
     );
 
     const authType =
-      loadedSettings.merged.security.auth.selectedType || AuthType.USE_GEMINI;
+      loadedSettings.merged.security.auth.selectedType ||
+      AuthType.OPENAI_COMPATIBLE;
 
     let isAuthenticated = false;
     let authErrorMessage = '';
@@ -285,16 +265,6 @@ export class GeminiAgent {
         this.customHeaders,
       );
       isAuthenticated = true;
-
-      // Extra validation for Gemini API key
-      const contentGeneratorConfig = config.getContentGeneratorConfig();
-      if (
-        authType === AuthType.USE_GEMINI &&
-        (!contentGeneratorConfig || !contentGeneratorConfig.apiKey)
-      ) {
-        isAuthenticated = false;
-        authErrorMessage = 'Gemini API key is missing or not configured.';
-      }
     } catch (e) {
       isAuthenticated = false;
       authErrorMessage = getAcpErrorMessage(e);
@@ -1997,7 +1967,7 @@ function buildAvailableModes(isPlanEnabled: boolean): acp.SessionMode[] {
 
 function buildAvailableModels(
   config: Config,
-  settings: LoadedSettings,
+  _settings: LoadedSettings,
 ): {
   availableModels: Array<{
     modelId: string;
@@ -2009,9 +1979,7 @@ function buildAvailableModels(
   const preferredModel = config.getModel() || DEFAULT_GEMINI_MODEL_AUTO;
   const shouldShowPreviewModels = config.getHasAccessToPreviewModel();
   const useGemini31 = config.getGemini31LaunchedSync?.() ?? false;
-  const selectedAuthType = settings.merged.security.auth.selectedType;
-  const useCustomToolModel =
-    useGemini31 && selectedAuthType === AuthType.USE_GEMINI;
+  const useCustomToolModel = false; // 仅使用 OpenAI 兼容端点，不需要自定义工具模型
 
   const mainOptions = [
     {

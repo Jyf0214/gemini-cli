@@ -23,7 +23,6 @@ import type {
   ApprovalMode,
   UserTierId,
   IdeInfo,
-  AuthType,
   FallbackIntent,
   ValidationIntent,
   AgentDefinition,
@@ -42,7 +41,6 @@ export interface ProQuotaDialogRequest {
   message: string;
   isTerminalQuotaError: boolean;
   isModelNotFoundError?: boolean;
-  authType?: AuthType;
   resolve: (intent: FallbackIntent) => void;
 }
 
@@ -112,7 +110,6 @@ export interface UIState {
   authError: string | null;
   accountSuspensionInfo: AccountSuspensionInfo | null;
   isAuthDialogOpen: boolean;
-  isAwaitingApiKeyInput: boolean;
   isAwaitingOpenAICompatibleAuthInput: boolean;
   apiKeyDefaultValue?: string;
   openAiCompatibleDefaults: { endpoint: string; apiKey: string; model: string };

@@ -32,7 +32,6 @@ import {
   isActiveModel,
   getDisplayString,
   isAutoModel,
-  AuthType,
 } from '@google/gemini-cli-core';
 import { useSettings } from '../contexts/SettingsContext.js';
 import { useConfig } from '../contexts/ConfigContext.js';
@@ -552,9 +551,8 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
   const useGemini3_1 = config.getGemini31LaunchedSync?.() ?? false;
   const useGemini3_1FlashLite =
     config.getGemini31FlashLiteLaunchedSync?.() ?? false;
-  const useCustomToolModel =
-    useGemini3_1 &&
-    config.getContentGeneratorConfig().authType === AuthType.USE_GEMINI;
+  // 是否使用自定义工具模型（始终为 false，因为已移除认证类型判断）
+  const useCustomToolModel = false;
   const pooledRemaining = quotaStats?.remaining;
   const pooledLimit = quotaStats?.limit;
   const pooledResetTime = quotaStats?.resetTime;
