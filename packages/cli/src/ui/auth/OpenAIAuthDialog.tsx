@@ -10,7 +10,6 @@ import { Box, Text } from 'ink';
 import { theme } from '../semantic-colors.js';
 import { TextInput } from '../components/shared/TextInput.js';
 import { useTextBuffer } from '../components/shared/text-buffer.js';
-import { useUIState } from '../contexts/UIStateContext.js';
 import { useKeypress } from '../hooks/useKeypress.js';
 
 interface OpenAIAuthDialogProps {
@@ -30,7 +29,7 @@ export function OpenAIAuthDialog({
   defaultApiKey = '',
   defaultModel = '',
 }: OpenAIAuthDialogProps): React.JSX.Element {
-  const { terminalWidth } = useUIState();
+  const terminalWidth = 80;
   const viewportWidth = terminalWidth - 8;
   const [activeFieldIndex, setActiveFieldIndex] = useState(0);
 
