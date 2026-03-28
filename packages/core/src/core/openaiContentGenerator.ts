@@ -21,6 +21,7 @@ import {
 import type { ContentGenerator } from './contentGenerator.js';
 import type { UserTierId, GeminiUserTier } from '../code_assist/types.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
+import { debugLogger } from '../utils/debugLogger.js';
 
 interface OpenAIMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -83,6 +84,10 @@ export class OpenAIContentGenerator implements ContentGenerator {
   constructor(apiKey: string, baseUrl: string) {
     this.apiKey = apiKey;
     this.baseUrl = baseUrl.replace(/\/$/, '');
+    debugLogger.debug('OpenAIContentGenerator initialized:', {
+      baseUrl: this.baseUrl,
+      apiKey: apiKey ? '***' : 'empty',
+    });
   }
 
   async generateContent(
@@ -90,6 +95,12 @@ export class OpenAIContentGenerator implements ContentGenerator {
     _userPromptId: string,
     _role: LlmRole,
   ): Promise<GenerateContentResponse> {
+    debugLogger.debug('generateContent called:', {
+      model: (req as any).model,
+      hasTools: !!(req as any).config?.tools,
+      config: (req as any).config,
+    });
+
     const contents = this.toContents((req as any).contents);
     const messages = this.convertToOpenAIMessages(contents);
     const model = ((req as any).model || 'gpt-3.5-turbo') as string;
@@ -116,7 +127,15 @@ export class OpenAIContentGenerator implements ContentGenerator {
       body['tools'] = tools;
     }
 
-    const response = await fetch(`${this.baseUrl}/v1/chat/completions`, {
+    const url = `${this.baseUrl}/v1/chat/completions`;
+    debugLogger.debug('Sending request to OpenAI API:', {
+      url,
+      model,
+      messageCount: messages.length,
+      hasTools: !!tools,
+    });
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -125,8 +144,19 @@ export class OpenAIContentGenerator implements ContentGenerator {
       body: JSON.stringify(body),
     });
 
+    debugLogger.debug('OpenAI API response status:', {
+      status: response.status,
+      statusText: response.statusText,
+      ok: response.ok,
+    });
+
     if (!response.ok) {
       const error = await response.text();
+      debugLogger.error('OpenAI API error:', {
+        status: response.status,
+        statusText: response.statusText,
+        error,
+      });
       throw new Error(`OpenAI API error: ${response.status} ${error}`);
     }
 
@@ -139,6 +169,12 @@ export class OpenAIContentGenerator implements ContentGenerator {
     _userPromptId: string,
     _role: LlmRole,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
+    debugLogger.debug('generateContentStream called:', {
+      model: (req as any).model,
+      hasTools: !!(req as any).config?.tools,
+      stream: true,
+    });
+
     // 使用 IIFE 模式保存上下文
     return (async function* (
       self: OpenAIContentGenerator,
@@ -169,7 +205,16 @@ export class OpenAIContentGenerator implements ContentGenerator {
         body['tools'] = tools;
       }
 
-      const response = await fetch(`${self.baseUrl}/v1/chat/completions`, {
+      const url = `${self.baseUrl}/v1/chat/completions`;
+      debugLogger.debug('Sending streaming request to OpenAI API:', {
+        url,
+        model,
+        messageCount: messages.length,
+        hasTools: !!tools,
+        stream: true,
+      });
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -178,8 +223,19 @@ export class OpenAIContentGenerator implements ContentGenerator {
         body: JSON.stringify(body),
       });
 
+      debugLogger.debug('OpenAI API streaming response status:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+      });
+
       if (!response.ok) {
         const error = await response.text();
+        debugLogger.error('OpenAI API streaming error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error,
+        });
         throw new Error(`OpenAI API error: ${response.status} ${error}`);
       }
 
