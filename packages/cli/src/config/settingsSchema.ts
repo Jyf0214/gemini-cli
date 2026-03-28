@@ -1823,6 +1823,26 @@ const SETTINGS_SCHEMA = {
             description: 'Whether to use an external authentication flow.',
             showInDialog: false,
           },
+          openaiEndpoint: {
+            type: 'string',
+            label: 'OpenAI Compatible Endpoint',
+            category: 'Security',
+            requiresRestart: true,
+            default: undefined as string | undefined,
+            description:
+              'The base URL for an OpenAI-compatible API endpoint (e.g., https://api.deepseek.com).',
+            showInDialog: false,
+          },
+          openaiModel: {
+            type: 'string',
+            label: 'OpenAI Compatible Model',
+            category: 'Security',
+            requiresRestart: true,
+            default: undefined as string | undefined,
+            description:
+              'The model name to use with the OpenAI-compatible endpoint (e.g., deepseek-chat).',
+            showInDialog: false,
+          },
         },
       },
       enableConseca: {

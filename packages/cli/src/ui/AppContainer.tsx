@@ -158,6 +158,7 @@ import {
   EXPAND_HINT_DURATION_MS,
 } from './constants.js';
 import { LoginWithGoogleRestartDialog } from './auth/LoginWithGoogleRestartDialog.js';
+import { OpenAIAuthDialog } from './auth/OpenAIAuthDialog.js';
 import { NewAgentsChoice } from './components/NewAgentsNotification.js';
 import { isSlashCommand } from './utils/commandUtils.js';
 import { parseSlashCommand } from '../utils/commands.js';
@@ -668,6 +669,11 @@ export const AppContainer = (props: AppContainerProps) => {
   const [authContext, setAuthContext] = useState<{ requiresRestart?: boolean }>(
     {},
   );
+  const [openAiCompatibleDefaults, setOpenAiCompatibleDefaults] = useState<{
+    endpoint: string;
+    apiKey: string;
+    model: string;
+  }>({ endpoint: '', apiKey: '', model: '' });
 
   useEffect(() => {
     if (authState === AuthState.Authenticated && authContext.requiresRestart) {
@@ -812,6 +818,51 @@ Logging in with Google... Restarting Gemini CLI to continue.
 
   const handleApiKeyCancel = useCallback(() => {
     // Go back to auth method selection
+    setAuthState(AuthState.Updating);
+  }, [setAuthState]);
+
+  const handleOpenAICompatibleAuthSubmit = useCallback(
+    async (endpoint: string, apiKey: string, model: string) => {
+      try {
+        onAuthError(null);
+        if (!endpoint.trim()) {
+          onAuthError('Endpoint URL cannot be empty.');
+          return;
+        }
+        if (!apiKey.trim()) {
+          onAuthError('API key cannot be empty.');
+          return;
+        }
+        if (!model.trim()) {
+          onAuthError('Model name cannot be empty.');
+          return;
+        }
+
+        await saveApiKey(apiKey);
+        await settings.setValue(
+          SettingScope.User,
+          'security.auth.openAiCompatibleEndpoint',
+          endpoint,
+        );
+        await settings.setValue(
+          SettingScope.User,
+          'security.auth.openAiCompatibleModel',
+          model,
+        );
+        setOpenAiCompatibleDefaults({ endpoint, apiKey, model });
+        await reloadApiKey();
+        await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
+        setAuthState(AuthState.Authenticated);
+      } catch (e) {
+        onAuthError(
+          `Failed to save OpenAI-compatible config: ${e instanceof Error ? e.message : String(e)}`,
+        );
+      }
+    },
+    [setAuthState, onAuthError, reloadApiKey, config, settings],
+  );
+
+  const handleOpenAICompatibleAuthCancel = useCallback(() => {
     setAuthState(AuthState.Updating);
   }, [setAuthState]);
 
@@ -2031,6 +2082,7 @@ Logging in with Google... Restarting Gemini CLI to continue.
     !!emptyWalletRequest ||
     isSessionBrowserOpen ||
     authState === AuthState.AwaitingApiKeyInput ||
+    authState === AuthState.AwaitingOpenAICompatibleAuthInput ||
     !!newAgents;
 
   const hasConfirmUpdateExtensionRequests =
@@ -2217,7 +2269,10 @@ Logging in with Google... Restarting Gemini CLI to continue.
       accountSuspensionInfo,
       isAuthDialogOpen,
       isAwaitingApiKeyInput: authState === AuthState.AwaitingApiKeyInput,
+      isAwaitingOpenAICompatibleAuthInput:
+        authState === AuthState.AwaitingOpenAICompatibleAuthInput,
       apiKeyDefaultValue,
+      openAiCompatibleDefaults,
       editorError,
       isEditorDialogOpen,
       showPrivacyNotice,
@@ -2506,6 +2561,8 @@ Logging in with Google... Restarting Gemini CLI to continue.
       popAllMessages,
       handleApiKeySubmit,
       handleApiKeyCancel,
+      handleOpenAICompatibleAuthSubmit,
+      handleOpenAICompatibleAuthCancel,
       setBannerVisible,
       setShortcutsHelpVisible,
       setCleanUiDetailsVisible,
@@ -2598,6 +2655,8 @@ Logging in with Google... Restarting Gemini CLI to continue.
       popAllMessages,
       handleApiKeySubmit,
       handleApiKeyCancel,
+      handleOpenAICompatibleAuthSubmit,
+      handleOpenAICompatibleAuthCancel,
       setBannerVisible,
       setShortcutsHelpVisible,
       setCleanUiDetailsVisible,
@@ -2616,6 +2675,19 @@ Logging in with Google... Restarting Gemini CLI to continue.
       getPreferredEditor,
     ],
   );
+
+  if (authState === AuthState.AwaitingOpenAICompatibleAuthInput) {
+    return (
+      <OpenAIAuthDialog
+        onSubmit={handleOpenAICompatibleAuthSubmit}
+        onCancel={handleOpenAICompatibleAuthCancel}
+        error={authError}
+        defaultEndpoint={openAiCompatibleDefaults.endpoint}
+        defaultApiKey={openAiCompatibleDefaults.apiKey}
+        defaultModel={openAiCompatibleDefaults.model}
+      />
+    );
+  }
 
   if (authState === AuthState.AwaitingGoogleLoginRestart) {
     return (

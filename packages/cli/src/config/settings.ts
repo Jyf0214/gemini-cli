@@ -1103,6 +1103,46 @@ export function saveModelChange(
   }
 }
 
+export function saveOpenAIEndpoint(
+  loadedSettings: LoadedSettings,
+  endpoint: string,
+): void {
+  try {
+    loadedSettings.setValue(
+      SettingScope.User,
+      'security.auth.openaiEndpoint',
+      endpoint,
+    );
+  } catch (error) {
+    const detailedErrorMessage = getFsErrorMessage(error);
+    coreEvents.emitFeedback(
+      'error',
+      `Failed to save OpenAI endpoint: ${detailedErrorMessage}`,
+      error,
+    );
+  }
+}
+
+export function saveOpenAIModel(
+  loadedSettings: LoadedSettings,
+  model: string,
+): void {
+  try {
+    loadedSettings.setValue(
+      SettingScope.User,
+      'security.auth.openaiModel',
+      model,
+    );
+  } catch (error) {
+    const detailedErrorMessage = getFsErrorMessage(error);
+    coreEvents.emitFeedback(
+      'error',
+      `Failed to save OpenAI model: ${detailedErrorMessage}`,
+      error,
+    );
+  }
+}
+
 function migrateExperimentalSettings(
   settings: Settings,
   loadedSettings: LoadedSettings,

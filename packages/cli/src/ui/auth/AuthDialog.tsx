@@ -75,6 +75,11 @@ export function AuthDialog({
       value: AuthType.USE_VERTEX_AI,
       key: AuthType.USE_VERTEX_AI,
     },
+    {
+      label: 'OpenAI Compatible Endpoint',
+      value: AuthType.OPENAI_COMPATIBLE,
+      key: AuthType.OPENAI_COMPATIBLE,
+    },
   ];
 
   if (settings.merged.security.auth.enforcedType) {
@@ -141,6 +146,11 @@ export function AuthDialog({
           // explicitly enter or confirm their key, regardless of
           // whether GEMINI_API_KEY env var or a stored key exists.
           setAuthState(AuthState.AwaitingApiKeyInput);
+          return;
+        }
+
+        if (authType === AuthType.OPENAI_COMPATIBLE) {
+          setAuthState(AuthState.AwaitingOpenAICompatibleAuthInput);
           return;
         }
       }

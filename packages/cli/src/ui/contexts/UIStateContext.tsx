@@ -113,7 +113,9 @@ export interface UIState {
   accountSuspensionInfo: AccountSuspensionInfo | null;
   isAuthDialogOpen: boolean;
   isAwaitingApiKeyInput: boolean;
+  isAwaitingOpenAICompatibleAuthInput: boolean;
   apiKeyDefaultValue?: string;
+  openAiCompatibleDefaults: { endpoint: string; apiKey: string; model: string };
   editorError: string | null;
   isEditorDialogOpen: boolean;
   showPrivacyNotice: boolean;

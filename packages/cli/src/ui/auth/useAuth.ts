@@ -33,6 +33,10 @@ export function validateAuthMethodWithSettings(
   if (authType === AuthType.USE_GEMINI) {
     return null;
   }
+  // If using OpenAI Compatible endpoint, we don't validate it here as we might need to prompt for API key.
+  if (authType === AuthType.OPENAI_COMPATIBLE) {
+    return null;
+  }
   return validateAuthMethod(authType);
 }
 
@@ -107,6 +111,14 @@ export const useAuthCommand = (
         const key = await reloadApiKey(); // Use the unified function
         if (!key) {
           setAuthState(AuthState.AwaitingApiKeyInput);
+          return;
+        }
+      }
+
+      if (authType === AuthType.OPENAI_COMPATIBLE) {
+        const key = await reloadApiKey();
+        if (!key) {
+          setAuthState(AuthState.AwaitingOpenAICompatibleAuthInput);
           return;
         }
       }

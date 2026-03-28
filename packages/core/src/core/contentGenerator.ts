@@ -63,6 +63,7 @@ export enum AuthType {
   LEGACY_CLOUD_SHELL = 'cloud-shell',
   COMPUTE_ADC = 'compute-default-credentials',
   GATEWAY = 'gateway',
+  OPENAI_COMPATIBLE = 'openai-compatible',
 }
 
 /**
@@ -155,6 +156,14 @@ export async function createContentGeneratorConfig(
   if (authType === AuthType.GATEWAY) {
     contentGeneratorConfig.apiKey = apiKey || 'gateway-placeholder-key';
     contentGeneratorConfig.vertexai = false;
+
+    return contentGeneratorConfig;
+  }
+
+  if (authType === AuthType.OPENAI_COMPATIBLE) {
+    contentGeneratorConfig.apiKey = apiKey;
+    contentGeneratorConfig.vertexai = false;
+    contentGeneratorConfig.baseUrl = baseUrl;
 
     return contentGeneratorConfig;
   }
@@ -290,6 +299,17 @@ export async function createContentGenerator(
       });
       return new LoggingContentGenerator(googleGenAI.models, gcConfig);
     }
+
+    if (config.authType === AuthType.OPENAI_COMPATIBLE) {
+      const { OpenAIContentGenerator } = await import(
+        './openaiContentGenerator.js'
+      );
+      return new OpenAIContentGenerator(
+        config.apiKey || '',
+        config.baseUrl || '',
+      );
+    }
+
     throw new Error(
       `Error creating contentGenerator: Unsupported authType: ${config.authType}`,
     );

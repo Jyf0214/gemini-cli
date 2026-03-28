@@ -74,6 +74,12 @@ export interface UIActions {
   popAllMessages: () => string | undefined;
   handleApiKeySubmit: (apiKey: string) => Promise<void>;
   handleApiKeyCancel: () => void;
+  handleOpenAICompatibleAuthSubmit: (
+    endpoint: string,
+    apiKey: string,
+    model: string,
+  ) => Promise<void>;
+  handleOpenAICompatibleAuthCancel: () => void;
   setBannerVisible: (visible: boolean) => void;
   setShortcutsHelpVisible: (visible: boolean) => void;
   setCleanUiDetailsVisible: (visible: boolean) => void;
