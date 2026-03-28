@@ -22,6 +22,11 @@ import type { ContentGenerator } from './contentGenerator.js';
 import type { UserTierId, GeminiUserTier } from '../code_assist/types.js';
 import type { LlmRole } from '../telemetry/llmRole.js';
 import { debugLogger } from '../utils/debugLogger.js';
+import {
+  geminiContentsToOpenAIMessages,
+  geminiToolToOpenAI,
+  openAIResponseToGeminiParts,
+} from './functionCallTranslator.js';
 
 interface OpenAIMessage {
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -267,19 +272,8 @@ export class OpenAIContentGenerator implements ContentGenerator {
         if (done) {
           // 流结束时，发送累积的 tool_calls
           if (pendingToolCalls.size > 0) {
-            const parts: any[] = [];
-            for (const [, tc] of pendingToolCalls) {
-              try {
-                parts.push({
-                  functionCall: {
-                    name: tc.name,
-                    args: tc.args ? JSON.parse(tc.args) : {},
-                  },
-                });
-              } catch {
-                // 解析错误，跳过
-              }
-            }
+            const parts =
+              this.convertPendingToolCallsToGeminiParts(pendingToolCalls);
             if (parts.length > 0) {
               const out = new GenerateContentResponse();
               out.candidates = [
@@ -305,15 +299,8 @@ export class OpenAIContentGenerator implements ContentGenerator {
             if (dataStr === '[DONE]') {
               // 发送最后累积的 tool_calls
               if (pendingToolCalls.size > 0) {
-                const parts: any[] = [];
-                for (const [, tc] of pendingToolCalls) {
-                  parts.push({
-                    functionCall: {
-                      name: tc.name,
-                      args: tc.args ? JSON.parse(tc.args) : {},
-                    },
-                  });
-                }
+                const parts =
+                  this.convertPendingToolCallsToGeminiParts(pendingToolCalls);
                 const out = new GenerateContentResponse();
                 out.candidates = [
                   {
@@ -358,15 +345,8 @@ export class OpenAIContentGenerator implements ContentGenerator {
                 data.choices[0]?.finish_reason === 'tool_calls' &&
                 pendingToolCalls.size > 0
               ) {
-                const parts: any[] = [];
-                for (const [, tc] of pendingToolCalls) {
-                  parts.push({
-                    functionCall: {
-                      name: tc.name,
-                      args: tc.args ? JSON.parse(tc.args) : {},
-                    },
-                  });
-                }
+                const parts =
+                  this.convertPendingToolCallsToGeminiParts(pendingToolCalls);
                 const out = new GenerateContentResponse();
                 out.candidates = [
                   {
@@ -392,57 +372,48 @@ export class OpenAIContentGenerator implements ContentGenerator {
     }
   }
 
+  private convertPendingToolCallsToGeminiParts(
+    pendingToolCalls: Map<number, { id: string; name: string; args: string }>,
+  ): any[] {
+    const openAIToolCalls = Array.from(pendingToolCalls.values()).map((tc) => ({
+      id: tc.id,
+      type: 'function' as const,
+      function: {
+        name: tc.name,
+        arguments: tc.args || '{}',
+      },
+    }));
+    return openAIResponseToGeminiParts({ tool_calls: openAIToolCalls });
+  }
+
   private convertToOpenAIMessages(contents: any[]): OpenAIMessage[] {
-    const messages: OpenAIMessage[] = [];
-
-    for (const content of contents) {
-      const role = content.role === 'model' ? 'assistant' : 'user';
-      const parts = content.parts || [];
-
-      for (const part of parts) {
-        if (part.text) {
-          messages.push({
-            role: role as 'user' | 'assistant' | 'system',
-            content: part.text,
-          });
-        } else if (part.functionCall) {
-          // 处理函数调用结果作为消息历史
-          messages.push({
-            role: 'assistant',
-            tool_calls: [
-              {
-                id: part.functionCall.name,
-                type: 'function',
-                function: {
-                  name: part.functionCall.name,
-                  arguments: JSON.stringify(part.functionCall.args || {}),
-                },
-              },
-            ],
-          });
-        } else if (part.functionResponse) {
-          messages.push({
-            role: 'tool',
-            tool_call_id: part.functionResponse.name,
-            content: JSON.stringify(part.functionResponse.response || {}),
-          });
-        }
-      }
-    }
-
-    return messages;
+    const geminiContents = contents.map((content) => ({
+      role: content.role as 'user' | 'model',
+      parts: (content.parts || []).map((part: any) => ({
+        text: part.text,
+        functionCall: part.functionCall
+          ? { name: part.functionCall.name, args: part.functionCall.args }
+          : undefined,
+        functionResponse: part.functionResponse
+          ? {
+              name: part.functionResponse.name,
+              response: part.functionResponse.response,
+            }
+          : undefined,
+      })),
+    }));
+    return geminiContentsToOpenAIMessages(geminiContents);
   }
 
   private convertToOpenAITools(tools: any[]): OpenAITool[] {
-    return tools.map((tool: any) => ({
-      type: 'function',
-      function: {
-        name: tool.functionDeclarations?.[0]?.name || tool.name,
-        description:
-          tool.functionDeclarations?.[0]?.description || tool.description,
-        parameters: tool.functionDeclarations?.[0]?.parameters,
-      },
-    }));
+    return tools.flatMap((tool: any) => {
+      const geminiTool = {
+        functionDeclarations: tool.functionDeclarations,
+        name: tool.name,
+        description: tool.description,
+      };
+      return geminiToolToOpenAI(geminiTool);
+    });
   }
 
   private convertOpenAIResponseToGemini(data: any): GenerateContentResponse {
@@ -453,23 +424,17 @@ export class OpenAIContentGenerator implements ContentGenerator {
       return out;
     }
 
-    const parts: any[] = [];
-    if (choice.message?.content) {
-      parts.push({ text: choice.message.content });
-    }
-
-    if (choice.message?.tool_calls) {
-      for (const tc of choice.message.tool_calls) {
-        parts.push({
-          functionCall: {
-            name: tc.function.name,
-            args: tc.function.arguments
-              ? JSON.parse(tc.function.arguments)
-              : {},
-          },
-        });
-      }
-    }
+    const parts = openAIResponseToGeminiParts({
+      content: choice.message?.content,
+      tool_calls: choice.message?.tool_calls?.map((tc: any) => ({
+        id: tc.id || '',
+        type: 'function' as const,
+        function: {
+          name: tc.function.name,
+          arguments: tc.function.arguments || '{}',
+        },
+      })),
+    });
 
     out.candidates = [
       {
