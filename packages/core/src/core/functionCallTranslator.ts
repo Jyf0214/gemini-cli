@@ -123,6 +123,8 @@ export interface OpenAIMessage {
 export interface GeminiContentPart {
   /** 文本内容 */
   text?: string;
+  /** 是否为思考过程（reasoning） */
+  thought?: boolean;
   /** 函数调用 */
   functionCall?: GeminiFunctionCall;
   /** 函数响应 */
@@ -478,23 +480,30 @@ export function geminiContentsToOpenAIMessages(
 /**
  * 将 OpenAI 格式的响应转换为 Gemini 格式的内容部分数组
  *
- * @param openaiResponse - OpenAI 格式的响应（包含 content 和 tool_calls）
+ * @param openaiResponse - OpenAI 格式的响应（包含 content、tool_calls 和 reasoning）
  * @returns Gemini 格式的内容部分数组
  *
  * @example
  * ```ts
  * const parts = openAIResponseToGeminiParts({
+ *   reasoning: 'Let me think about this...',
  *   content: 'The weather is sunny',
  *   tool_calls: [{ id: 'call_1', type: 'function', function: { name: 'get_weather', arguments: '{}' } }]
  * });
- * // => [{ text: 'The weather is sunny' }, { functionCall: { name: 'get_weather', args: {} } }]
+ * // => [{ text: 'Let me think about this...', thought: true }, { text: 'The weather is sunny' }, { functionCall: { name: 'get_weather', args: {} } }]
  * ```
  */
 export function openAIResponseToGeminiParts(openaiResponse: {
   content?: string | null;
   tool_calls?: OpenAIToolCall[];
+  reasoning?: string | null;
 }): GeminiContentPart[] {
   const parts: GeminiContentPart[] = [];
+
+  // 处理思考过程（reasoning）
+  if (openaiResponse.reasoning) {
+    parts.push({ text: openaiResponse.reasoning, thought: true });
+  }
 
   if (openaiResponse.content) {
     parts.push({ text: openaiResponse.content });

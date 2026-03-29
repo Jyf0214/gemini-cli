@@ -450,6 +450,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
           arguments: tc.function.arguments || '{}',
         },
       })),
+      reasoning: choice.message?.reasoning,
     });
 
     out.candidates = [
@@ -477,7 +478,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
     }
 
     if (choice.delta?.reasoning) {
-      parts.push({ text: choice.delta.reasoning });
+      parts.push({ text: choice.delta.reasoning, thought: true });
     }
 
     out.candidates = [
