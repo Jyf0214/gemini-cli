@@ -222,10 +222,17 @@ export class GeminiAgent {
       this.baseUrl = baseUrl;
       this.customHeaders = headers;
 
+      // For OPENAI_COMPATIBLE, use openaiEndpoint from settings if no baseUrl provided
+      const effectiveBaseUrl =
+        baseUrl ||
+        (method === AuthType.OPENAI_COMPATIBLE
+          ? this.settings.merged.security.auth.openaiEndpoint
+          : undefined);
+
       await this.context.config.refreshAuth(
         method,
         apiKey ?? this.apiKey,
-        baseUrl,
+        effectiveBaseUrl,
         headers,
       );
     } catch (e) {
@@ -258,10 +265,17 @@ export class GeminiAgent {
     let isAuthenticated = false;
     let authErrorMessage = '';
     try {
+      // For OPENAI_COMPATIBLE, use openaiEndpoint from settings if no baseUrl
+      const effectiveBaseUrl =
+        this.baseUrl ||
+        (authType === AuthType.OPENAI_COMPATIBLE
+          ? loadedSettings.merged.security.auth.openaiEndpoint
+          : undefined);
+
       await config.refreshAuth(
         authType,
         this.apiKey,
-        this.baseUrl,
+        effectiveBaseUrl,
         this.customHeaders,
       );
       isAuthenticated = true;
@@ -407,10 +421,17 @@ export class GeminiAgent {
     // This satisfies the security requirement to verify the user before executing
     // potentially unsafe server definitions.
     try {
+      // For OPENAI_COMPATIBLE, use openaiEndpoint from settings if no baseUrl
+      const effectiveBaseUrl =
+        this.baseUrl ||
+        (selectedAuthType === AuthType.OPENAI_COMPATIBLE
+          ? this.settings.merged.security.auth.openaiEndpoint
+          : undefined);
+
       await config.refreshAuth(
         selectedAuthType,
         this.apiKey,
-        this.baseUrl,
+        effectiveBaseUrl,
         this.customHeaders,
       );
     } catch (e) {

@@ -92,7 +92,11 @@ describe('initializer', () => {
       shouldOpenAuthDialog: false,
       geminiMdFileCount: 5,
     });
-    expect(performInitialAuth).toHaveBeenCalledWith(mockConfig, 'oauth');
+    expect(performInitialAuth).toHaveBeenCalledWith(
+      mockConfig,
+      'oauth',
+      undefined,
+    );
     expect(validateTheme).toHaveBeenCalledWith(mockSettings);
     expect(logCliConfiguration).toHaveBeenCalled();
     expect(IdeClient.getInstance).not.toHaveBeenCalled();

@@ -40,10 +40,13 @@ describe('auth', () => {
     const result = await performInitialAuth(
       mockConfig,
       AuthType.OPENAI_COMPATIBLE,
+      'https://api.example.com/v1',
     );
     expect(result).toEqual({ authError: null, accountSuspensionInfo: null });
     expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
       AuthType.OPENAI_COMPATIBLE,
+      undefined,
+      'https://api.example.com/v1',
     );
   });
 
@@ -53,6 +56,7 @@ describe('auth', () => {
     const result = await performInitialAuth(
       mockConfig,
       AuthType.OPENAI_COMPATIBLE,
+      'https://api.example.com/v1',
     );
     expect(result).toEqual({
       authError: 'Failed to sign in. Message: Authentication failed',
@@ -60,6 +64,8 @@ describe('auth', () => {
     });
     expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
       AuthType.OPENAI_COMPATIBLE,
+      undefined,
+      'https://api.example.com/v1',
     );
   });
 
@@ -70,10 +76,13 @@ describe('auth', () => {
     const result = await performInitialAuth(
       mockConfig,
       AuthType.OPENAI_COMPATIBLE,
+      'https://api.example.com/v1',
     );
     expect(result).toEqual({ authError: null, accountSuspensionInfo: null });
     expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
       AuthType.OPENAI_COMPATIBLE,
+      undefined,
+      'https://api.example.com/v1',
     );
   });
 
@@ -103,6 +112,7 @@ describe('auth', () => {
     const result = await performInitialAuth(
       mockConfig,
       AuthType.OPENAI_COMPATIBLE,
+      'https://api.example.com/v1',
     );
     expect(result).toEqual({
       authError: null,
@@ -115,6 +125,8 @@ describe('auth', () => {
     });
     expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
       AuthType.OPENAI_COMPATIBLE,
+      undefined,
+      'https://api.example.com/v1',
     );
   });
 
@@ -124,6 +136,7 @@ describe('auth', () => {
     const result = await performInitialAuth(
       mockConfig,
       AuthType.OPENAI_COMPATIBLE,
+      'https://api.example.com/v1',
     );
     expect(result).toEqual({
       authError:
@@ -133,6 +146,8 @@ describe('auth', () => {
     expect(result.authError).not.toContain('Failed to login');
     expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
       AuthType.OPENAI_COMPATIBLE,
+      undefined,
+      'https://api.example.com/v1',
     );
   });
 });

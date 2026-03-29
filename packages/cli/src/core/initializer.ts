@@ -43,6 +43,7 @@ export async function initializeApp(
   const { authError, accountSuspensionInfo } = await performInitialAuth(
     config,
     settings.merged.security.auth.selectedType,
+    settings.merged.security.auth.openaiEndpoint,
   );
   authHandle?.end();
   const themeError = validateTheme(settings);

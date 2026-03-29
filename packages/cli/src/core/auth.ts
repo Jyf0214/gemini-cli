@@ -29,13 +29,14 @@ export interface InitialAuthResult {
 export async function performInitialAuth(
   config: Config,
   authType: AuthType | undefined,
+  baseUrl?: string,
 ): Promise<InitialAuthResult> {
   if (!authType) {
     return { authError: null, accountSuspensionInfo: null };
   }
 
   try {
-    await config.refreshAuth(authType);
+    await config.refreshAuth(authType, undefined, baseUrl);
     // The console.log is intentionally left out here.
     // We can add a dedicated startup message later if needed.
   } catch (e) {
