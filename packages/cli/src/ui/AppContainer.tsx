@@ -760,7 +760,8 @@ export const AppContainer = (props: AppContainerProps) => {
 
         try {
           config.setRemoteAdminSettings(undefined);
-          await config.refreshAuth(authType);
+          const openaiEndpoint = settings.merged.security.auth.openaiEndpoint;
+          await config.refreshAuth(authType, undefined, openaiEndpoint);
           setAuthState(AuthState.Authenticated);
           logBillingEvent(
             config,

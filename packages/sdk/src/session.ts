@@ -94,8 +94,10 @@ export class GeminiCliSession {
     if (this.initialized) return;
 
     const authType = getAuthTypeFromEnv() || AuthType.OPENAI_COMPATIBLE;
+    const apiKey = process.env['OPENAI_API_KEY'];
+    const baseUrl = process.env['OPENAI_BASE_URL'];
 
-    await this.config.refreshAuth(authType);
+    await this.config.refreshAuth(authType, apiKey, baseUrl);
     await this.config.initialize();
 
     // Load additional skills from options

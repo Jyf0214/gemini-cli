@@ -445,6 +445,8 @@ describe('loadConfig', () => {
 
         expect(refreshAuthMock).toHaveBeenCalledWith(
           AuthType.OPENAI_COMPATIBLE,
+          undefined,
+          undefined,
         );
       });
 

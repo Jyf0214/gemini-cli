@@ -265,5 +265,7 @@ async function refreshAuthentication(
   logPrefix: string,
 ): Promise<void> {
   logger.info(`[${logPrefix}] 使用 OpenAI 兼容端点认证`);
-  await config.refreshAuth(AuthType.OPENAI_COMPATIBLE);
+  const apiKey = process.env['OPENAI_API_KEY'];
+  const baseUrl = process.env['OPENAI_BASE_URL'];
+  await config.refreshAuth(AuthType.OPENAI_COMPATIBLE, apiKey, baseUrl);
 }
