@@ -122,10 +122,11 @@ export async function createContentGenerator(
       const { OpenAIContentGenerator } = await import(
         './openaiContentGenerator.js'
       );
-      return new OpenAIContentGenerator(
+      const openaiGenerator = new OpenAIContentGenerator(
         config.apiKey || '',
         config.baseUrl || '',
       );
+      return new LoggingContentGenerator(openaiGenerator, gcConfig);
     }
 
     throw new Error(`创建内容生成器失败：不支持的认证类型: ${config.authType}`);

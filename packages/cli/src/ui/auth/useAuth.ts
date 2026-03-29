@@ -12,6 +12,7 @@ import {
   debugLogger,
   isAccountSuspendedError,
   ProjectIdRequiredError,
+  loadApiKey,
 } from '@google/gemini-cli-core';
 import { getErrorMessage } from '@google/gemini-cli-core';
 import { AuthState } from '../types.js';
@@ -65,10 +66,11 @@ export const useAuthCommand = (
   );
 
   const reloadApiKey = useCallback(async () => {
-    // 仅支持 OpenAI 兼容端点的 API key 加载逻辑
-    const storedKey = process.env['OPENAI_API_KEY'] ?? '';
-    setApiKeyDefaultValue(storedKey);
-    return storedKey;
+    const storedKey = await loadApiKey();
+    const envKey = process.env['OPENAI_API_KEY'] ?? '';
+    const key = storedKey || envKey || '';
+    setApiKeyDefaultValue(key);
+    return key;
   }, []);
 
   useEffect(() => {
