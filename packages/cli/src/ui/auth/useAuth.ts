@@ -102,9 +102,12 @@ export const useAuthCommand = (
       }
 
       try {
-        await config.refreshAuth(authType);
+        // 对于 OpenAI 兼容端点，需要传递 baseUrl
+        const openaiEndpoint = settings.merged.security.auth.openaiEndpoint;
+        const apiKey = await reloadApiKey();
+        await config.refreshAuth(authType, apiKey, openaiEndpoint);
 
-        debugLogger.log(`Authenticated via "${authType}".`);
+        debugLogger.log(`已通过 "${authType}" 认证.`);
         setAuthError(null);
         setAuthState(AuthState.Authenticated);
       } catch (e) {
