@@ -497,12 +497,20 @@ export function openAIResponseToGeminiParts(openaiResponse: {
   content?: string | null;
   tool_calls?: OpenAIToolCall[];
   reasoning?: string | null;
+  thinking?: string | null;
+  thought?: string | null;
+  chain_of_thought?: string | null;
 }): GeminiContentPart[] {
   const parts: GeminiContentPart[] = [];
 
-  // 处理思考过程（reasoning）
-  if (openaiResponse.reasoning) {
-    parts.push({ text: openaiResponse.reasoning, thought: true });
+  const thinkingText =
+    openaiResponse.reasoning ||
+    openaiResponse.thinking ||
+    openaiResponse.thought ||
+    openaiResponse.chain_of_thought;
+
+  if (thinkingText) {
+    parts.push({ text: thinkingText, thought: true });
   }
 
   if (openaiResponse.content) {

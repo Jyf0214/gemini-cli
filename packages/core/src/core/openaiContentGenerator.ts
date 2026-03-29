@@ -69,6 +69,9 @@ interface OpenAIStreamChunk {
         };
       }>;
       reasoning?: string;
+      thinking?: string;
+      thought?: string;
+      chain_of_thought?: string;
     };
     finish_reason: string | null;
   }>;
@@ -282,6 +285,10 @@ export class OpenAIContentGenerator implements ContentGenerator {
       { id: string; name: string; args: string }
     > = new Map();
 
+    // 用于累积思考内容
+    let isThinking = false;
+    let thinkingBuffer = '';
+
     try {
       while (true) {
         const { done, value } = await reader.read();
@@ -300,6 +307,20 @@ export class OpenAIContentGenerator implements ContentGenerator {
               ];
               yield out;
             }
+          }
+          // 如果还有未完成的思考内容，发送它
+          if (thinkingBuffer) {
+            const out = new GenerateContentResponse();
+            out.candidates = [
+              {
+                content: {
+                  parts: [{ text: thinkingBuffer, thought: true }],
+                  role: 'model',
+                },
+                finishReason: FinishReason.STOP,
+              },
+            ];
+            yield out;
           }
           break;
         }
@@ -321,6 +342,20 @@ export class OpenAIContentGenerator implements ContentGenerator {
                 out.candidates = [
                   {
                     content: { parts, role: 'model' },
+                    finishReason: FinishReason.STOP,
+                  },
+                ];
+                yield out;
+              }
+              // 发送最后累积的思考内容
+              if (thinkingBuffer) {
+                const out = new GenerateContentResponse();
+                out.candidates = [
+                  {
+                    content: {
+                      parts: [{ text: thinkingBuffer, thought: true }],
+                      role: 'model',
+                    },
                     finishReason: FinishReason.STOP,
                   },
                 ];
@@ -375,8 +410,60 @@ export class OpenAIContentGenerator implements ContentGenerator {
                 continue;
               }
 
-              // 普通文本响应
-              yield this.convertOpenAIStreamChunkToGemini(data);
+              // 处理思考内容
+              const parts: any[] = [];
+              const delta = data.choices[0]?.delta;
+
+              // 1. 处理 delta.reasoning 字段
+              if (delta?.reasoning) {
+                parts.push({ text: delta.reasoning, thought: true });
+              }
+
+              // 2. 处理 delta.thinking 字段
+              if (delta?.thinking) {
+                parts.push({ text: delta.thinking, thought: true });
+              }
+
+              // 3. 处理 delta.content 中的 <thinking>...</thinking> 标记
+              if (delta?.content) {
+                const content = delta.content;
+                const processedContent = this.processThinkingTags(
+                  content,
+                  isThinking,
+                  thinkingBuffer,
+                );
+
+                // 更新状态
+                isThinking = processedContent.isThinking;
+                thinkingBuffer = processedContent.thinkingBuffer;
+
+                // 添加普通内容部分
+                if (processedContent.normalContent) {
+                  parts.push({ text: processedContent.normalContent });
+                }
+
+                // 如果有完整的思考内容块，添加它
+                if (processedContent.completedThinking) {
+                  parts.push({
+                    text: processedContent.completedThinking,
+                    thought: true,
+                  });
+                }
+              }
+
+              // 4. 如果有累积的思考内容但没有新的思考内容，且不在思考块内，发送累积的思考内容
+              // 注意：这里我们不在流中发送部分思考内容，而是等待完成或流结束
+
+              if (parts.length > 0) {
+                const out = new GenerateContentResponse();
+                out.candidates = [
+                  {
+                    content: { parts, role: 'model' },
+                    finishReason: FinishReason.STOP,
+                  },
+                ];
+                yield out;
+              }
             } catch {
               // Skip invalid JSON
             }
@@ -386,6 +473,62 @@ export class OpenAIContentGenerator implements ContentGenerator {
     } finally {
       reader.releaseLock();
     }
+  }
+
+  private processThinkingTags(
+    content: string,
+    isCurrentlyThinking: boolean,
+    currentThinkingBuffer: string,
+  ): {
+    normalContent: string;
+    completedThinking: string;
+    isThinking: boolean;
+    thinkingBuffer: string;
+  } {
+    let normalContent = '';
+    let completedThinking = '';
+    let isThinking = isCurrentlyThinking;
+    let thinkingBuffer = currentThinkingBuffer;
+
+    let remaining = content;
+    while (remaining.length > 0) {
+      if (!isThinking) {
+        // 查找开始标记
+        const startIndex = remaining.indexOf('<thinking>');
+        if (startIndex === -1) {
+          // 没有开始标记，全部是普通内容
+          normalContent += remaining;
+          break;
+        }
+        // 添加开始标记前的普通内容
+        normalContent += remaining.substring(0, startIndex);
+        // 进入思考模式
+        isThinking = true;
+        remaining = remaining.substring(startIndex + 10); // 10 是 '<thinking>' 的长度
+      } else {
+        // 查找结束标记
+        const endIndex = remaining.indexOf('</thinking>');
+        if (endIndex === -1) {
+          // 没有结束标记，全部是思考内容
+          thinkingBuffer += remaining;
+          break;
+        }
+        // 添加结束标记前的思考内容
+        thinkingBuffer += remaining.substring(0, endIndex);
+        // 完成一个思考块
+        completedThinking = thinkingBuffer;
+        thinkingBuffer = '';
+        isThinking = false;
+        remaining = remaining.substring(endIndex + 11); // 11 是 '</thinking>' 的长度
+      }
+    }
+
+    return {
+      normalContent,
+      completedThinking,
+      isThinking,
+      thinkingBuffer,
+    };
   }
 
   private convertPendingToolCallsToGeminiParts(
@@ -451,35 +594,10 @@ export class OpenAIContentGenerator implements ContentGenerator {
         },
       })),
       reasoning: choice.message?.reasoning,
+      thinking: choice.message?.thinking,
+      thought: choice.message?.thought,
+      chain_of_thought: choice.message?.chain_of_thought,
     });
-
-    out.candidates = [
-      {
-        content: { parts, role: 'model' },
-        finishReason: FinishReason.STOP,
-      },
-    ];
-    return out;
-  }
-
-  private convertOpenAIStreamChunkToGemini(
-    data: OpenAIStreamChunk,
-  ): GenerateContentResponse {
-    const out = new GenerateContentResponse();
-    const choice = data.choices?.[0];
-    if (!choice) {
-      out.candidates = [];
-      return out;
-    }
-
-    const parts: any[] = [];
-    if (choice.delta?.content) {
-      parts.push({ text: choice.delta.content });
-    }
-
-    if (choice.delta?.reasoning) {
-      parts.push({ text: choice.delta.reasoning, thought: true });
-    }
 
     out.candidates = [
       {
@@ -544,7 +662,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
         return [];
       }
       const data = await response.json();
-      return (data as any).data?.map((m: any) => m.id) || [];
+      return data.data?.map((m: any) => m.id) || [];
     } catch {
       return [];
     }
