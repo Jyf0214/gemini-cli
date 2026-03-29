@@ -496,11 +496,24 @@ export class OpenAIContentGenerator implements ContentGenerator {
     let isThinking = isCurrentlyThinking;
     let thinkingBuffer = currentThinkingBuffer;
 
+    // 支持的思考标签
+    const startTags = ['<thinking>', '<think>'];
+    const endTags = ['</thinking>', '</think>'];
+
     let remaining = content;
     while (remaining.length > 0) {
       if (!isThinking) {
         // 查找开始标记
-        const startIndex = remaining.indexOf('<thinking>');
+        let startIndex = -1;
+        let startTag = '';
+        for (const tag of startTags) {
+          const idx = remaining.indexOf(tag);
+          if (idx !== -1 && (startIndex === -1 || idx < startIndex)) {
+            startIndex = idx;
+            startTag = tag;
+          }
+        }
+
         if (startIndex === -1) {
           // 没有开始标记，全部是普通内容
           normalContent += remaining;
@@ -510,10 +523,19 @@ export class OpenAIContentGenerator implements ContentGenerator {
         normalContent += remaining.substring(0, startIndex);
         // 进入思考模式
         isThinking = true;
-        remaining = remaining.substring(startIndex + 10); // 10 是 '<thinking>' 的长度
+        remaining = remaining.substring(startIndex + startTag.length);
       } else {
         // 查找结束标记
-        const endIndex = remaining.indexOf('</thinking>');
+        let endIndex = -1;
+        let endTag = '';
+        for (const tag of endTags) {
+          const idx = remaining.indexOf(tag);
+          if (idx !== -1 && (endIndex === -1 || idx < endIndex)) {
+            endIndex = idx;
+            endTag = tag;
+          }
+        }
+
         if (endIndex === -1) {
           // 没有结束标记，全部是思考内容
           thinkingBuffer += remaining;
@@ -525,7 +547,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
         completedThinking = thinkingBuffer;
         thinkingBuffer = '';
         isThinking = false;
-        remaining = remaining.substring(endIndex + 11); // 11 是 '</thinking>' 的长度
+        remaining = remaining.substring(endIndex + endTag.length);
       }
     }
 
