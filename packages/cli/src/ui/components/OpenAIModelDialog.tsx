@@ -43,7 +43,7 @@ export function OpenAIModelDialog({
 
   const fetchModelsFromEndpoint = useCallback(async () => {
     if (!endpoint) {
-      setErrorMessage('No endpoint configured');
+      setErrorMessage('未配置端点');
       return;
     }
 
@@ -52,7 +52,12 @@ export function OpenAIModelDialog({
 
     try {
       const apiKey = await loadApiKey();
-      const url = `${endpoint}/v1/models`;
+      // 移除末尾的 /v1（如果有的话）
+      let baseUrl = endpoint.replace(/\/$/, '');
+      if (baseUrl.endsWith('/v1')) {
+        baseUrl = baseUrl.slice(0, -3);
+      }
+      const url = `${baseUrl}/v1/models`;
       const response = await fetch(url, {
         headers: apiKey
           ? { Authorization: `Bearer ${apiKey}` }
@@ -60,7 +65,8 @@ export function OpenAIModelDialog({
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch models: ${response.status}`);
+        // 端点不支持 /v1/models，静默处理
+        return;
       }
 
       const data = (await response.json()) as {
@@ -71,10 +77,8 @@ export function OpenAIModelDialog({
         const combined = [...new Set([...models, ...prev])];
         return combined;
       });
-    } catch (err) {
-      setErrorMessage(
-        err instanceof Error ? err.message : 'Failed to fetch models',
-      );
+    } catch {
+      // 请求失败，静默处理（很多端点不支持 /v1/models）
     } finally {
       setIsLoading(false);
     }
@@ -190,10 +194,10 @@ export function OpenAIModelDialog({
       <Box marginTop={1} flexDirection="column">
         <Text>Available Models:</Text>
         {isLoading ? (
-          <Text color={theme.text.secondary}>Loading models...</Text>
+          <Text color={theme.text.secondary}>正在获取模型列表...</Text>
         ) : modelOptions.length === 0 ? (
           <Text color={theme.text.secondary}>
-            No models available. Add custom model or refresh from endpoint.
+            未找到可用模型。按 [A] 手动添加模型 ID。
           </Text>
         ) : (
           <RadioButtonSelect
