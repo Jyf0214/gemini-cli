@@ -416,12 +416,18 @@ export class OpenAIContentGenerator implements ContentGenerator {
 
               // 1. 处理 delta.reasoning 字段
               if (delta?.reasoning) {
-                parts.push({ text: delta.reasoning, thought: true });
+                parts.push({
+                  text: delta.reasoning,
+                  thought: true,
+                });
               }
 
               // 2. 处理 delta.thinking 字段
               if (delta?.thinking) {
-                parts.push({ text: delta.thinking, thought: true });
+                parts.push({
+                  text: delta.thinking,
+                  thought: true,
+                });
               }
 
               // 3. 处理 delta.content 中的 <thinking>...</thinking> 标记
@@ -583,21 +589,38 @@ export class OpenAIContentGenerator implements ContentGenerator {
       return out;
     }
 
-    const parts = openAIResponseToGeminiParts({
-      content: choice.message?.content,
-      tool_calls: choice.message?.tool_calls?.map((tc: any) => ({
-        id: tc.id || '',
-        type: 'function' as const,
-        function: {
-          name: tc.function.name,
-          arguments: tc.function.arguments || '{}',
-        },
-      })),
-      reasoning: choice.message?.reasoning,
-      thinking: choice.message?.thinking,
-      thought: choice.message?.thought,
-      chain_of_thought: choice.message?.chain_of_thought,
-    });
+    // 处理思考内容字段
+    const thinkingText =
+      choice.message?.reasoning ||
+      choice.message?.thinking ||
+      choice.message?.thought ||
+      choice.message?.chain_of_thought;
+
+    const parts: any[] = [];
+
+    if (thinkingText) {
+      parts.push({
+        text: thinkingText,
+        thought: true,
+      });
+    }
+
+    // 添加普通内容
+    if (choice.message?.content) {
+      parts.push({ text: choice.message.content });
+    }
+
+    // 添加工具调用
+    if (choice.message?.tool_calls) {
+      for (const tc of choice.message.tool_calls) {
+        parts.push({
+          functionCall: {
+            name: tc.function.name,
+            args: JSON.parse(tc.function.arguments || '{}'),
+          },
+        });
+      }
+    }
 
     out.candidates = [
       {
