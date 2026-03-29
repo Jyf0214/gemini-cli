@@ -87,7 +87,12 @@ export const ThinkingMessage: React.FC<ThinkingMessageProps> = ({
           </Text>
         )}
         {fullLines.slice(1).map((line, index) => (
-          <Text key={`body-line-${index}`} color={theme.text.secondary} italic>
+          <Text
+            key={`body-line-${index}`}
+            color={theme.text.secondary}
+            italic
+            dimColor
+          >
             {line}
           </Text>
         ))}

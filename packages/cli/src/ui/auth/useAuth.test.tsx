@@ -265,7 +265,9 @@ describe('useAuth', () => {
         deferredRefreshAuth.resolve();
       });
 
-      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(AuthType.OPENAI_COMPATIBLE);
+      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
+        AuthType.OPENAI_COMPATIBLE,
+      );
       expect(result.current.authState).toBe(AuthState.Authenticated);
       expect(result.current.apiKeyDefaultValue).toBe('stored-key');
     });
@@ -281,7 +283,9 @@ describe('useAuth', () => {
         deferredRefreshAuth.resolve();
       });
 
-      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(AuthType.OPENAI_COMPATIBLE);
+      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
+        AuthType.OPENAI_COMPATIBLE,
+      );
       expect(result.current.authState).toBe(AuthState.Authenticated);
       expect(result.current.apiKeyDefaultValue).toBe('env-key');
     });
@@ -297,7 +301,9 @@ describe('useAuth', () => {
         deferredRefreshAuth.resolve();
       });
 
-      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(AuthType.OPENAI_COMPATIBLE);
+      expect(mockConfig.refreshAuth).toHaveBeenCalledWith(
+        AuthType.OPENAI_COMPATIBLE,
+      );
       expect(result.current.authState).toBe(AuthState.Authenticated);
       expect(result.current.apiKeyDefaultValue).toBe('env-key');
     });
