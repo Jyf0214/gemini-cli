@@ -7,6 +7,7 @@
 import type React from 'react';
 import { useCallback, useMemo, useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
+import type { Config } from '@google/gemini-cli-core';
 import { loadApiKey } from '@google/gemini-cli-core';
 import { useKeypress } from '../hooks/useKeypress.js';
 import { theme } from '../semantic-colors.js';
@@ -16,10 +17,12 @@ import { SettingScope } from '../../config/settings.js';
 
 interface OpenAIModelDialogProps {
   onClose: () => void;
+  config?: Config;
 }
 
 export function OpenAIModelDialog({
   onClose,
+  config,
 }: OpenAIModelDialogProps): React.JSX.Element {
   const settings = useSettings();
 
@@ -29,6 +32,8 @@ export function OpenAIModelDialog({
   const [customModelId, setCustomModelId] = useState('');
   const [isAddingCustom, setIsAddingCustom] = useState(false);
   const [persistMode, setPersistMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
 
   const endpoint = settings.merged.security?.auth?.openaiEndpoint || '';
   const currentModel = settings.merged.security?.auth?.openaiModel || '';
@@ -106,7 +111,7 @@ export function OpenAIModelDialog({
           model,
         );
       } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Failed to save model';
+        const msg = err instanceof Error ? err.message : '保存模型失败';
         setErrorMessage(msg);
       }
     },
@@ -115,24 +120,64 @@ export function OpenAIModelDialog({
 
   const handleSelect = useCallback(
     (model: string) => {
+      if (config) {
+        config.setModel(model, !persistMode);
+      }
       if (persistMode) {
         saveModelToSettings(model);
       }
       onClose();
     },
-    [onClose, persistMode, saveModelToSettings],
+    [onClose, persistMode, saveModelToSettings, config],
   );
 
+  // 根据搜索查询过滤模型列表
+  const filteredModels = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return availableModels;
+    }
+    const query = searchQuery.toLowerCase();
+    return availableModels.filter((model) =>
+      model.toLowerCase().includes(query),
+    );
+  }, [availableModels, searchQuery]);
+
   const modelOptions = useMemo(() => {
-    return availableModels.map((model) => ({
+    return filteredModels.map((model) => ({
       value: model,
       label: model,
       key: model,
     }));
-  }, [availableModels]);
+  }, [filteredModels]);
 
   useKeypress(
     (key) => {
+      // 搜索模式下的按键处理
+      if (isSearching) {
+        if (key.name === 'escape') {
+          setIsSearching(false);
+          setSearchQuery('');
+          return true;
+        }
+        if (key.name === 'return') {
+          setIsSearching(false);
+          return true;
+        }
+        if (key.name === 'backspace') {
+          setSearchQuery((prev) => prev.slice(0, -1));
+          return true;
+        }
+        if (key.ctrl || key.shift || key.alt) {
+          return false;
+        }
+        if (key.name.length === 1) {
+          setSearchQuery((prev) => prev + key.name);
+          return true;
+        }
+        return false;
+      }
+
+      // 添加自定义模型模式下的按键处理
       if (isAddingCustom) {
         if (key.name === 'escape') {
           setIsAddingCustom(false);
@@ -160,12 +205,17 @@ export function OpenAIModelDialog({
         return false;
       }
 
+      // 正常模式下的按键处理
       if (key.name === 'escape') {
         onClose();
         return true;
       }
       if (key.name === 'tab') {
         setPersistMode((prev) => !prev);
+        return true;
+      }
+      if (key.name === '/') {
+        setIsSearching(true);
         return true;
       }
       if (key.name === 'r') {
@@ -189,15 +239,35 @@ export function OpenAIModelDialog({
       padding={1}
       width="100%"
     >
-      <Text bold>Select OpenAI-Compatible Model</Text>
+      <Text bold>选择 OpenAI 兼容模型</Text>
+
+      {/* 搜索框 */}
+      <Box marginTop={1}>
+        <Text color={theme.text.primary}>搜索: </Text>
+        {isSearching ? (
+          <Text color={theme.ui.focus}>
+            {searchQuery || ''}
+            <Text color={theme.text.secondary}>▌</Text>
+          </Text>
+        ) : searchQuery ? (
+          <Text color={theme.text.secondary}>{searchQuery} (按 / 编辑)</Text>
+        ) : (
+          <Text color={theme.text.secondary}>按 / 搜索</Text>
+        )}
+      </Box>
 
       <Box marginTop={1} flexDirection="column">
-        <Text>Available Models:</Text>
+        <Text>
+          可用模型 ({filteredModels.length}
+          {searchQuery ? `/${availableModels.length}` : ''}):
+        </Text>
         {isLoading ? (
           <Text color={theme.text.secondary}>正在获取模型列表...</Text>
         ) : modelOptions.length === 0 ? (
           <Text color={theme.text.secondary}>
-            未找到可用模型。按 [A] 手动添加模型 ID。
+            {searchQuery
+              ? '未找到匹配的模型。'
+              : '未找到可用模型。按 [A] 手动添加模型 ID。'}
           </Text>
         ) : (
           <RadioButtonSelect
@@ -218,19 +288,23 @@ export function OpenAIModelDialog({
       <Box marginTop={1} flexDirection="column">
         {isAddingCustom ? (
           <Box flexDirection="column">
-            <Text>Enter model ID and press Enter:</Text>
+            <Text>输入模型 ID 并按回车:</Text>
             <Text color={theme.text.primary}>{customModelId}</Text>
-            <Text color={theme.text.secondary}>(Press Esc to cancel)</Text>
+            <Text color={theme.text.secondary}>(按 Esc 取消)</Text>
           </Box>
         ) : (
           <Box flexDirection="column">
             <Box>
+              <Text color={theme.text.primary}>[/] </Text>
+              <Text>搜索模型</Text>
+            </Box>
+            <Box>
               <Text color={theme.text.primary}>[R] </Text>
-              <Text>Refresh from endpoint</Text>
+              <Text>从端点刷新</Text>
             </Box>
             <Box>
               <Text color={theme.text.primary}>[A] </Text>
-              <Text>Add custom model ID</Text>
+              <Text>添加自定义模型 ID</Text>
             </Box>
           </Box>
         )}
@@ -238,18 +312,14 @@ export function OpenAIModelDialog({
 
       <Box marginTop={1} flexDirection="column">
         <Box>
-          <Text color={theme.text.primary}>
-            Remember model for future sessions:{' '}
-          </Text>
-          <Text color={theme.status.success}>
-            {persistMode ? 'true' : 'false'}
-          </Text>
+          <Text color={theme.text.primary}>记住模型: </Text>
+          <Text color={theme.status.success}>{persistMode ? '是' : '否'}</Text>
         </Box>
-        <Text color={theme.text.secondary}>(Press Tab to toggle)</Text>
+        <Text color={theme.text.secondary}>(按 Tab 切换)</Text>
       </Box>
 
       <Box marginTop={1} flexDirection="column">
-        <Text color={theme.text.secondary}>(Press Esc to close)</Text>
+        <Text color={theme.text.secondary}>(按 Esc 关闭)</Text>
       </Box>
     </Box>
   );

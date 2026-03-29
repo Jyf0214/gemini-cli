@@ -56,17 +56,17 @@ const manageModelCommand: SlashCommand = {
   kind: CommandKind.BUILT_IN,
   autoExecute: true,
   action: async (context: CommandContext) => {
-    if (context.services.agentContext?.config) {
-      await context.services.agentContext.config.refreshUserQuota();
+    const config = context.services.agentContext?.config;
+    if (config) {
+      await config.refreshUserQuota();
     }
-    const authType =
-      context.services.agentContext?.config?.getContentGeneratorConfig()
-        ?.authType;
+    const authType = config?.getContentGeneratorConfig()?.authType;
     if (authType === AuthType.OPENAI_COMPATIBLE) {
       return {
         type: 'custom_dialog' as const,
         component: React.createElement(OpenAIModelDialog, {
           onClose: () => context.ui.removeComponent(),
+          config: config,
         }),
       };
     }
