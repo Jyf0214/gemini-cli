@@ -9,6 +9,7 @@ import { modelCommand } from './modelCommand.js';
 import { type CommandContext } from './types.js';
 import { createMockCommandContext } from '../../test-utils/mockCommandContext.js';
 import type { Config } from '@google/gemini-cli-core';
+import { AuthType } from '@google/gemini-cli-core';
 import { MessageType } from '../types.js';
 
 describe('modelCommand', () => {
@@ -22,6 +23,14 @@ describe('modelCommand', () => {
     if (!modelCommand.action) {
       throw new Error('The model command must have an action.');
     }
+    mockContext.services.agentContext = {
+      config: {
+        getContentGeneratorConfig: vi
+          .fn()
+          .mockReturnValue({ authType: 'oauth' }),
+        refreshUserQuota: vi.fn(),
+      },
+    } as unknown as Config;
 
     const result = await modelCommand.action(mockContext, '');
 
@@ -39,6 +48,7 @@ describe('modelCommand', () => {
     const mockRefreshUserQuota = vi.fn();
     mockContext.services.agentContext = {
       refreshUserQuota: mockRefreshUserQuota,
+      getContentGeneratorConfig: vi.fn().mockReturnValue({ authType: 'oauth' }),
       get config() {
         return this;
       },
@@ -55,6 +65,14 @@ describe('modelCommand', () => {
         (c) => c.name === 'manage',
       );
       expect(manageCommand).toBeDefined();
+      mockContext.services.agentContext = {
+        config: {
+          getContentGeneratorConfig: vi
+            .fn()
+            .mockReturnValue({ authType: 'oauth' }),
+          refreshUserQuota: vi.fn(),
+        },
+      } as unknown as Config;
 
       const result = await manageCommand!.action!(mockContext, '');
 
@@ -71,6 +89,9 @@ describe('modelCommand', () => {
       const mockRefreshUserQuota = vi.fn();
       mockContext.services.agentContext = {
         refreshUserQuota: mockRefreshUserQuota,
+        getContentGeneratorConfig: vi
+          .fn()
+          .mockReturnValue({ authType: 'oauth' }),
         get config() {
           return this;
         },
@@ -79,6 +100,28 @@ describe('modelCommand', () => {
       await manageCommand!.action!(mockContext, '');
 
       expect(mockRefreshUserQuota).toHaveBeenCalled();
+    });
+
+    it('should return custom_dialog when authType is OPENAI_COMPATIBLE', async () => {
+      const manageCommand = modelCommand.subCommands?.find(
+        (c) => c.name === 'manage',
+      );
+      expect(manageCommand).toBeDefined();
+      mockContext.services.agentContext = {
+        config: {
+          getContentGeneratorConfig: vi
+            .fn()
+            .mockReturnValue({ authType: AuthType.OPENAI_COMPATIBLE }),
+          refreshUserQuota: vi.fn(),
+        },
+      } as unknown as Config;
+
+      const result = await manageCommand!.action!(mockContext, '');
+
+      expect(result).toEqual({
+        type: 'custom_dialog',
+        component: expect.anything(),
+      });
     });
   });
 

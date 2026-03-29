@@ -518,4 +518,22 @@ export class OpenAIContentGenerator implements ContentGenerator {
       embedding: { values: embedding },
     } as EmbedContentResponse;
   }
+
+  async listModels(): Promise<string[]> {
+    try {
+      const url = `${this.baseUrl}/v1/models`;
+      const response = await fetch(url, {
+        headers: {
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+      });
+      if (!response.ok) {
+        return [];
+      }
+      const data = await response.json();
+      return (data as any).data?.map((m: any) => m.id) || [];
+    } catch {
+      return [];
+    }
+  }
 }

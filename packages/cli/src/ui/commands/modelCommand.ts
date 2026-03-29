@@ -7,6 +7,7 @@
 import {
   ModelSlashCommandEvent,
   logModelSlashCommand,
+  AuthType,
 } from '@google/gemini-cli-core';
 import {
   type CommandContext,
@@ -14,6 +15,8 @@ import {
   type SlashCommand,
 } from './types.js';
 import { MessageType } from '../types.js';
+import React from 'react';
+import { OpenAIModelDialog } from '../components/OpenAIModelDialog.js';
 
 const setModelCommand: SlashCommand = {
   name: 'set',
@@ -56,9 +59,20 @@ const manageModelCommand: SlashCommand = {
     if (context.services.agentContext?.config) {
       await context.services.agentContext.config.refreshUserQuota();
     }
+    const authType =
+      context.services.agentContext?.config?.getContentGeneratorConfig()
+        ?.authType;
+    if (authType === AuthType.OPENAI_COMPATIBLE) {
+      return {
+        type: 'custom_dialog' as const,
+        component: React.createElement(OpenAIModelDialog, {
+          onClose: () => context.ui.removeComponent(),
+        }),
+      };
+    }
     return {
-      type: 'dialog',
-      dialog: 'model',
+      type: 'dialog' as const,
+      dialog: 'model' as const,
     };
   },
 };
