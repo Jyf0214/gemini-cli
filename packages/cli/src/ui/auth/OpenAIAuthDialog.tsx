@@ -71,7 +71,10 @@ export function OpenAIAuthDialog({
   const placeholders = ['https://api.openai.com/v1', 'sk-...', 'gpt-4o'];
 
   const handleSubmit = useCallback(() => {
-    const endpoint = endpointBuffer.text.trim();
+    const endpoint = endpointBuffer.text
+      .trim()
+      .replace(/\/v1$/, '')
+      .replace(/\/$/, '');
     const apiKey = apiKeyBuffer.text.trim();
     const model = modelBuffer.text.trim();
     onSubmit(endpoint, apiKey, model);
