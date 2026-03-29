@@ -5,7 +5,7 @@
  */
 
 import type React from 'react';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import { theme } from '../semantic-colors.js';
 import { TextInput } from '../components/shared/TextInput.js';
@@ -33,9 +33,14 @@ export function OpenAIAuthDialog({
   const viewportWidth = terminalWidth - 8;
   const [activeFieldIndex, setActiveFieldIndex] = useState(0);
 
+  // 清理默认端点，去掉 /v1 后缀
+  const cleanDefaultEndpoint = useMemo(() => {
+    return defaultEndpoint.replace(/\/v1$/, '').replace(/\/$/, '');
+  }, [defaultEndpoint]);
+
   const endpointBuffer = useTextBuffer({
-    initialText: defaultEndpoint || '',
-    initialCursorOffset: defaultEndpoint?.length || 0,
+    initialText: cleanDefaultEndpoint || '',
+    initialCursorOffset: cleanDefaultEndpoint?.length || 0,
     viewport: {
       width: viewportWidth,
       height: 4,
@@ -67,13 +72,22 @@ export function OpenAIAuthDialog({
   });
 
   const buffers = [endpointBuffer, apiKeyBuffer, modelBuffer];
-  const fieldLabels = ['Endpoint URL', 'API Key', 'Model Name'];
-  const placeholders = ['https://api.openai.com/v1', 'sk-...', 'gpt-4o'];
+  const fieldLabels = ['端点 URL', 'API 密钥', '模型名称'];
+  const placeholders = ['https://api.example.com', 'sk-...', 'model-name'];
+
+  // 检测端点是否包含 /v1 后缀
+  const endpointHasV1Suffix = useMemo(() => {
+    return (
+      endpointBuffer.text.trim().endsWith('/v1') ||
+      endpointBuffer.text.trim().endsWith('/v1/')
+    );
+  }, [endpointBuffer.text]);
 
   const handleSubmit = useCallback(() => {
+    // 自动去掉 /v1 后缀和末尾斜杠
     const endpoint = endpointBuffer.text
       .trim()
-      .replace(/\/v1$/, '')
+      .replace(/\/v1\/?$/, '')
       .replace(/\/$/, '');
     const apiKey = apiKeyBuffer.text.trim();
     const model = modelBuffer.text.trim();
@@ -127,12 +141,11 @@ export function OpenAIAuthDialog({
       width="100%"
     >
       <Text bold color={theme.text.primary}>
-        Configure OpenAI-Compatible API
+        配置 OpenAI 兼容 API
       </Text>
       <Box marginTop={1} flexDirection="column">
         <Text color={theme.text.primary}>
-          Enter the endpoint, API key, and model name for an OpenAI-compatible
-          API.
+          请输入 OpenAI 兼容 API 的端点、密钥和模型名称。
         </Text>
       </Box>
       {fieldLabels.map((label, index) => (
@@ -147,7 +160,7 @@ export function OpenAIAuthDialog({
               {label}
             </Text>
             {activeFieldIndex === index && (
-              <Text color={theme.text.secondary}> (active)</Text>
+              <Text color={theme.text.secondary}> (当前)</Text>
             )}
           </Box>
           <Box
@@ -171,6 +184,20 @@ export function OpenAIAuthDialog({
               </Text>
             )}
           </Box>
+          {/* 端点字段的提示 */}
+          {index === 0 && (
+            <Box marginTop={0}>
+              {endpointHasV1Suffix ? (
+                <Text color={theme.status.warning}>
+                  ⚠ 检测到 /v1 后缀，提交时将自动移除
+                </Text>
+              ) : (
+                <Text color={theme.text.secondary}>
+                  请勿在端点后添加 /v1，系统会自动处理
+                </Text>
+              )}
+            </Box>
+          )}
         </Box>
       ))}
       {error && (
@@ -180,7 +207,7 @@ export function OpenAIAuthDialog({
       )}
       <Box marginTop={1}>
         <Text color={theme.text.secondary}>
-          (Tab or Ctrl+→ to switch fields, Enter to submit, Esc to cancel)
+          (Tab 或 Ctrl+→ 切换字段，回车提交，Esc 取消)
         </Text>
       </Box>
     </Box>
