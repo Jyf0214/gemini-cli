@@ -153,7 +153,9 @@ describe('<UserIdentity />', () => {
     );
 
     const output = lastFrame();
-    expect(output).toContain(`Authenticated with ${AuthType.OPENAI_COMPATIBLE}`);
+    expect(output).toContain(
+      `Authenticated with ${AuthType.OPENAI_COMPATIBLE}`,
+    );
     expect(output).toContain('/auth');
     expect(output).not.toContain('/upgrade');
     unmount();

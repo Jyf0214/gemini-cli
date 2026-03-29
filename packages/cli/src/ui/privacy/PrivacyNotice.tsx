@@ -19,11 +19,10 @@ const PrivacyNoticeText = ({
 }: {
   config: Config;
   onExit: () => void;
-}) => 
+}) => (
   // 默认显示 CloudFreePrivacyNotice（已移除其他认证类型判断）
-   <CloudFreePrivacyNotice config={config} onExit={onExit} />
-;
-
+  <CloudFreePrivacyNotice config={config} onExit={onExit} />
+);
 export const PrivacyNotice = ({ onExit, config }: PrivacyNoticeProps) => (
   <Box borderStyle="round" padding={1} flexDirection="column">
     <PrivacyNoticeText config={config} onExit={onExit} />

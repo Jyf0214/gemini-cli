@@ -396,7 +396,8 @@ describe('validateNonInterActiveAuth', () => {
     });
 
     it(`prints JSON error when enforced auth mismatches current auth and exits with code ${ExitCodes.FATAL_AUTHENTICATION_ERROR}`, async () => {
-      mockSettings.merged.security.auth.enforcedType = AuthType.OPENAI_COMPATIBLE;
+      mockSettings.merged.security.auth.enforcedType =
+        AuthType.OPENAI_COMPATIBLE;
       const nonInteractiveConfig = createLocalMockConfig({
         getOutputFormat: vi.fn().mockReturnValue(OutputFormat.JSON),
         getContentGeneratorConfig: vi
