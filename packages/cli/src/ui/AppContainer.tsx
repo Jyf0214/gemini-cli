@@ -59,6 +59,7 @@ import {
   recordExitFail,
   ShellExecutionService,
   saveApiKey,
+  loadApiKey,
   debugLogger,
   coreEvents,
   CoreEvent,
@@ -672,6 +673,18 @@ export const AppContainer = (props: AppContainerProps) => {
     apiKey: '',
     model: settings.merged.security?.auth?.openaiModel || '',
   });
+
+  // 在组件挂载时加载已保存的 API 密钥
+  useEffect(() => {
+    loadApiKey().then((savedApiKey) => {
+      if (savedApiKey) {
+        setOpenAiCompatibleDefaults((prev) => ({
+          ...prev,
+          apiKey: savedApiKey,
+        }));
+      }
+    });
+  }, []);
 
   const {
     proQuotaRequest,
