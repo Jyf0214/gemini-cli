@@ -91,10 +91,12 @@ export async function createContentGeneratorConfig(
   };
 
   if (authType === AuthType.OPENAI_COMPATIBLE) {
+    if (!baseUrl) {
+      throw new Error('baseUrl is required for OPENAI_COMPATIBLE auth type');
+    }
     contentGeneratorConfig.apiKey = apiKey;
     contentGeneratorConfig.vertexai = false;
     contentGeneratorConfig.baseUrl = baseUrl;
-
     return contentGeneratorConfig;
   }
 
@@ -119,12 +121,15 @@ export async function createContentGenerator(
     }
 
     if (config.authType === AuthType.OPENAI_COMPATIBLE) {
+      if (!config.baseUrl) {
+        throw new Error('baseUrl is required for OPENAI_COMPATIBLE auth type');
+      }
       const { OpenAIContentGenerator } = await import(
         './openaiContentGenerator.js'
       );
       const openaiGenerator = new OpenAIContentGenerator(
         config.apiKey || '',
-        config.baseUrl || '',
+        config.baseUrl,
       );
       return new LoggingContentGenerator(openaiGenerator, gcConfig);
     }

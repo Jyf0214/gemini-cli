@@ -31,7 +31,7 @@ export function OpenAIModelDialog({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [customModelId, setCustomModelId] = useState('');
   const [isAddingCustom, setIsAddingCustom] = useState(false);
-  const [persistMode, setPersistMode] = useState(false);
+  const [persistMode, setPersistMode] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [isSearching, setIsSearching] = useState(false);
 
@@ -74,10 +74,13 @@ export function OpenAIModelDialog({
         return;
       }
 
-      const data = (await response.json()) as {
-        data?: Array<{ id: string }>;
-      };
-      const models = (data.data || []).map((m) => m.id);
+      const data = await response.json();
+      type ModelsResponse = { data?: Array<{ id: string }> };
+      const responseData = data as ModelsResponse;
+      const modelsData = responseData.data;
+      const models: string[] = Array.isArray(modelsData)
+        ? modelsData.map((m) => m.id)
+        : [];
       setAvailableModels((prev) => {
         const combined = [...new Set([...models, ...prev])];
         return combined;
@@ -219,7 +222,7 @@ export function OpenAIModelDialog({
         return true;
       }
       if (key.name === 'r') {
-        fetchModelsFromEndpoint();
+        void fetchModelsFromEndpoint();
         return true;
       }
       if (key.name === 'a') {

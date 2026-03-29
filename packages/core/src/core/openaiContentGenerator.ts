@@ -88,6 +88,14 @@ export class OpenAIContentGenerator implements ContentGenerator {
 
   constructor(apiKey: string, baseUrl: string) {
     this.apiKey = apiKey;
+
+    if (!baseUrl) {
+      debugLogger.error(
+        'OpenAIContentGenerator: baseUrl is empty or undefined!',
+      );
+      throw new Error('baseUrl is required for OpenAIContentGenerator');
+    }
+
     // 移除末尾的斜杠
     let cleanUrl = baseUrl.replace(/\/$/, '');
     // 如果 URL 以 /v1 结尾，移除它（因为后续会统一添加 /v1/chat/completions）
@@ -95,7 +103,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
       cleanUrl = cleanUrl.slice(0, -3);
     }
     this.baseUrl = cleanUrl;
-    debugLogger.debug('OpenAIContentGenerator initialized:', {
+    debugLogger.log('OpenAIContentGenerator 初始化:', {
       baseUrl: this.baseUrl,
       apiKey: apiKey ? '***' : 'empty',
     });
@@ -139,6 +147,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
     }
 
     const url = `${this.baseUrl}/v1/chat/completions`;
+    debugLogger.log('请求 URL:', url);
     debugLogger.debug('Sending request to OpenAI API:', {
       url,
       model,
@@ -217,6 +226,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
       }
 
       const url = `${self.baseUrl}/v1/chat/completions`;
+      debugLogger.log('请求 URL:', url);
       debugLogger.debug('Sending streaming request to OpenAI API:', {
         url,
         model,
@@ -522,6 +532,8 @@ export class OpenAIContentGenerator implements ContentGenerator {
   async listModels(): Promise<string[]> {
     try {
       const url = `${this.baseUrl}/v1/models`;
+      debugLogger.log(`[OpenAI] 请求 URL: ${url}`);
+      debugLogger.log(`[OpenAI] baseUrl: ${this.baseUrl}`);
       const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${this.apiKey}`,
