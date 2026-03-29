@@ -667,7 +667,11 @@ export const AppContainer = (props: AppContainerProps) => {
     endpoint: string;
     apiKey: string;
     model: string;
-  }>({ endpoint: '', apiKey: '', model: '' });
+  }>({
+    endpoint: settings.merged.security?.auth?.openaiEndpoint || '',
+    apiKey: '',
+    model: settings.merged.security?.auth?.openaiModel || '',
+  });
 
   const {
     proQuotaRequest,
