@@ -763,7 +763,14 @@ export const AppContainer = (props: AppContainerProps) => {
         try {
           config.setRemoteAdminSettings(undefined);
           const openaiEndpoint = settings.merged.security.auth.openaiEndpoint;
-          await config.refreshAuth(authType, undefined, openaiEndpoint);
+          const openaiMaxTokens = settings.merged.security.auth.openaiMaxTokens;
+          await config.refreshAuth(
+            authType,
+            undefined,
+            openaiEndpoint,
+            undefined,
+            openaiMaxTokens,
+          );
           setAuthState(AuthState.Authenticated);
           logBillingEvent(
             config,
@@ -828,7 +835,13 @@ export const AppContainer = (props: AppContainerProps) => {
           AuthType.OPENAI_COMPATIBLE,
         );
         setOpenAiCompatibleDefaults({ endpoint, apiKey, model, maxTokens });
-        await config.refreshAuth(AuthType.OPENAI_COMPATIBLE, apiKey, endpoint);
+        await config.refreshAuth(
+          AuthType.OPENAI_COMPATIBLE,
+          apiKey,
+          endpoint,
+          undefined,
+          maxTokens,
+        );
         config.setModel(model);
         setAuthState(AuthState.Authenticated);
       } catch (e) {

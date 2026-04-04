@@ -101,19 +101,32 @@ export class OpenAIContentGenerator implements ContentGenerator {
     this.apiKey = apiKey;
     this.maxTokens = maxTokens;
 
-    if (!baseUrl) {
+    // 更严格的 URL 清理
+    let cleanUrl = baseUrl?.trim() || '';
+    if (!cleanUrl) {
       debugLogger.error(
         'OpenAIContentGenerator: baseUrl is empty or undefined!',
       );
       throw new Error('baseUrl is required for OpenAIContentGenerator');
     }
 
-    // 移除末尾的斜杠
-    let cleanUrl = baseUrl.replace(/\/$/, '');
+    // 移除所有末尾斜杠
+    cleanUrl = cleanUrl.replace(/\/+$/, '');
     // 如果 URL 以 /v1 结尾，移除它（因为后续会统一添加 /v1/chat/completions）
     if (cleanUrl.endsWith('/v1')) {
       cleanUrl = cleanUrl.slice(0, -3);
     }
+
+    // 验证 URL 必须以 http:// 或 https:// 开头
+    if (!cleanUrl.startsWith('http://') && !cleanUrl.startsWith('https://')) {
+      debugLogger.error(
+        `OpenAIContentGenerator: 无效的 baseUrl: ${baseUrl}. 必须以 http:// 或 https:// 开头`,
+      );
+      throw new Error(
+        `无效的 baseUrl: ${baseUrl}. 必须以 http:// 或 https:// 开头`,
+      );
+    }
+
     this.baseUrl = cleanUrl;
     debugLogger.log('OpenAIContentGenerator 初始化:', {
       baseUrl: this.baseUrl,
@@ -159,8 +172,11 @@ export class OpenAIContentGenerator implements ContentGenerator {
       body['tools'] = tools;
     }
 
+    if (!this.baseUrl) {
+      throw new Error('baseUrl 未设置，无法构建请求 URL');
+    }
     const url = `${this.baseUrl}/v1/chat/completions`;
-    debugLogger.log('请求 URL:', url);
+    debugLogger.log('[OpenAI] 最终请求 URL:', url);
     debugLogger.debug('Sending request to OpenAI API:', {
       url,
       model,
@@ -239,8 +255,11 @@ export class OpenAIContentGenerator implements ContentGenerator {
         body['tools'] = tools;
       }
 
+      if (!self.baseUrl) {
+        throw new Error('baseUrl 未设置，无法构建请求 URL');
+      }
       const url = `${self.baseUrl}/v1/chat/completions`;
-      debugLogger.log('请求 URL:', url);
+      debugLogger.log('[OpenAI] 最终流式请求 URL:', url);
       debugLogger.debug('Sending streaming request to OpenAI API:', {
         url,
         model,
@@ -593,14 +612,16 @@ export class OpenAIContentGenerator implements ContentGenerator {
   private convertPendingToolCallsToGeminiParts(
     pendingToolCalls: Map<number, { id: string; name: string; args: string }>,
   ): any[] {
-    const openAIToolCalls = Array.from(pendingToolCalls.values()).map((tc) => ({
-      id: tc.id,
-      type: 'function' as const,
-      function: {
-        name: tc.name,
-        arguments: tc.args || '{}',
-      },
-    }));
+    const openAIToolCalls = Array.from(pendingToolCalls.values())
+      .filter((tc) => tc.name && tc.name.trim() !== '')
+      .map((tc) => ({
+        id: tc.id,
+        type: 'function' as const,
+        function: {
+          name: tc.name,
+          arguments: tc.args || '{}',
+        },
+      }));
     return openAIResponseToGeminiParts({ tool_calls: openAIToolCalls });
   }
 
@@ -666,12 +687,14 @@ export class OpenAIContentGenerator implements ContentGenerator {
     // 添加工具调用
     if (choice.message?.tool_calls) {
       for (const tc of choice.message.tool_calls) {
-        parts.push({
-          functionCall: {
-            name: tc.function.name,
-            args: JSON.parse(tc.function.arguments || '{}'),
-          },
-        });
+        if (tc.function?.name) {
+          parts.push({
+            functionCall: {
+              name: tc.function.name,
+              args: JSON.parse(tc.function.arguments || '{}'),
+            },
+          });
+        }
       }
     }
 

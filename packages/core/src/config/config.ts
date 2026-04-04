@@ -1452,6 +1452,7 @@ export class Config implements McpContext, AgentLoopContext {
     apiKey?: string,
     baseUrl?: string,
     customHeaders?: Record<string, string>,
+    maxTokens?: number,
   ) {
     // 重置可用性服务
     this.modelAvailabilityService.reset();
@@ -1468,6 +1469,7 @@ export class Config implements McpContext, AgentLoopContext {
       apiKey,
       baseUrl,
       customHeaders,
+      maxTokens,
     );
     this.contentGenerator = await createContentGenerator(
       newContentGeneratorConfig,

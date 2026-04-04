@@ -70,6 +70,7 @@ export type ContentGeneratorConfig = {
   proxy?: string;
   baseUrl?: string;
   customHeaders?: Record<string, string>;
+  maxTokens?: number;
 };
 
 /**
@@ -82,12 +83,14 @@ export async function createContentGeneratorConfig(
   apiKey?: string,
   baseUrl?: string,
   customHeaders?: Record<string, string>,
+  maxTokens?: number,
 ): Promise<ContentGeneratorConfig> {
   const contentGeneratorConfig: ContentGeneratorConfig = {
     authType,
     proxy: config?.getProxy(),
     baseUrl,
     customHeaders,
+    maxTokens,
   };
 
   if (authType === AuthType.OPENAI_COMPATIBLE) {
@@ -130,6 +133,7 @@ export async function createContentGenerator(
       const openaiGenerator = new OpenAIContentGenerator(
         config.apiKey || '',
         config.baseUrl,
+        config.maxTokens,
       );
       return new LoggingContentGenerator(openaiGenerator, gcConfig);
     }

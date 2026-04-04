@@ -102,10 +102,17 @@ export const useAuthCommand = (
       }
 
       try {
-        // 对于 OpenAI 兼容端点，需要传递 baseUrl
+        // 对于 OpenAI 兼容端点，需要传递 baseUrl 和 maxTokens
         const openaiEndpoint = settings.merged.security.auth.openaiEndpoint;
+        const openaiMaxTokens = settings.merged.security.auth.openaiMaxTokens;
         const apiKey = await reloadApiKey();
-        await config.refreshAuth(authType, apiKey, openaiEndpoint);
+        await config.refreshAuth(
+          authType,
+          apiKey,
+          openaiEndpoint,
+          undefined,
+          openaiMaxTokens,
+        );
 
         debugLogger.log(`已通过 "${authType}" 认证.`);
         setAuthError(null);
