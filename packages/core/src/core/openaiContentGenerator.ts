@@ -75,6 +75,13 @@ interface OpenAIStreamChunk {
     };
     finish_reason: string | null;
   }>;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    input_tokens?: number;
+    output_tokens?: number;
+    total_tokens?: number;
+  };
 }
 
 /**
@@ -84,13 +91,15 @@ interface OpenAIStreamChunk {
 export class OpenAIContentGenerator implements ContentGenerator {
   private apiKey: string;
   private baseUrl: string;
+  private maxTokens?: number;
 
   userTier?: UserTierId;
   userTierName?: string;
   paidTier?: GeminiUserTier;
 
-  constructor(apiKey: string, baseUrl: string) {
+  constructor(apiKey: string, baseUrl: string, maxTokens?: number) {
     this.apiKey = apiKey;
+    this.maxTokens = maxTokens;
 
     if (!baseUrl) {
       debugLogger.error(
@@ -133,6 +142,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
     const body: Record<string, unknown> = {
       model,
       messages,
+      ...(this.maxTokens && { max_tokens: this.maxTokens }),
       stream: false,
     };
 
@@ -212,6 +222,7 @@ export class OpenAIContentGenerator implements ContentGenerator {
       const body: Record<string, unknown> = {
         model,
         messages,
+        ...(self.maxTokens && { max_tokens: self.maxTokens }),
         stream: true,
       };
 
@@ -366,6 +377,26 @@ export class OpenAIContentGenerator implements ContentGenerator {
 
             try {
               const data: OpenAIStreamChunk = JSON.parse(dataStr);
+
+              // 处理流式响应中的 usage 数据
+              if (data.usage) {
+                const out = new GenerateContentResponse();
+                out.usageMetadata = {
+                  promptTokenCount:
+                    data.usage.prompt_tokens ?? data.usage.input_tokens ?? 0,
+                  candidatesTokenCount:
+                    data.usage.completion_tokens ??
+                    data.usage.output_tokens ??
+                    0,
+                  totalTokenCount: data.usage.total_tokens ?? 0,
+                };
+                yield out;
+              }
+
+              // 如果没有 choices（例如只有 usage 的 chunk），跳过后续处理
+              if (!data.choices || data.choices.length === 0) {
+                continue;
+              }
 
               // 处理 tool_calls 累积
               if (
@@ -650,6 +681,18 @@ export class OpenAIContentGenerator implements ContentGenerator {
         finishReason: FinishReason.STOP,
       },
     ];
+
+    // 映射 OpenAI usage 到 Gemini usageMetadata
+    if (data.usage) {
+      out.usageMetadata = {
+        promptTokenCount:
+          data.usage.prompt_tokens ?? data.usage.input_tokens ?? 0,
+        candidatesTokenCount:
+          data.usage.completion_tokens ?? data.usage.output_tokens ?? 0,
+        totalTokenCount: data.usage.total_tokens ?? 0,
+      };
+    }
+
     return out;
   }
 

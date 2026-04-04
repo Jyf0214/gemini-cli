@@ -1843,6 +1843,16 @@ const SETTINGS_SCHEMA = {
               'The model name to use with the OpenAI-compatible endpoint (e.g., deepseek-chat).',
             showInDialog: false,
           },
+          openaiMaxTokens: {
+            type: 'number',
+            label: 'OpenAI Compatible Max Tokens',
+            category: 'Security',
+            requiresRestart: true,
+            default: undefined as number | undefined,
+            description:
+              'Maximum number of tokens for the OpenAI-compatible endpoint. If not specified, the model default is used.',
+            showInDialog: false,
+          },
         },
       },
       enableConseca: {

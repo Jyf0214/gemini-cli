@@ -668,10 +668,12 @@ export const AppContainer = (props: AppContainerProps) => {
     endpoint: string;
     apiKey: string;
     model: string;
+    maxTokens?: number;
   }>({
     endpoint: settings.merged.security?.auth?.openaiEndpoint || '',
     apiKey: '',
     model: settings.merged.security?.auth?.openaiModel || '',
+    maxTokens: settings.merged.security?.auth?.openaiMaxTokens,
   });
 
   // 在组件挂载时加载已保存的 API 密钥
@@ -783,7 +785,12 @@ export const AppContainer = (props: AppContainerProps) => {
   );
 
   const handleOpenAICompatibleAuthSubmit = useCallback(
-    async (endpoint: string, apiKey: string, model: string) => {
+    async (
+      endpoint: string,
+      apiKey: string,
+      model: string,
+      maxTokens?: number,
+    ) => {
       try {
         onAuthError(null);
         if (!endpoint.trim()) {
@@ -812,10 +819,15 @@ export const AppContainer = (props: AppContainerProps) => {
         );
         settings.setValue(
           SettingScope.User,
+          'security.auth.openaiMaxTokens',
+          maxTokens,
+        );
+        settings.setValue(
+          SettingScope.User,
           'security.auth.selectedType',
           AuthType.OPENAI_COMPATIBLE,
         );
-        setOpenAiCompatibleDefaults({ endpoint, apiKey, model });
+        setOpenAiCompatibleDefaults({ endpoint, apiKey, model, maxTokens });
         await config.refreshAuth(AuthType.OPENAI_COMPATIBLE, apiKey, endpoint);
         config.setModel(model);
         setAuthState(AuthState.Authenticated);
@@ -2638,6 +2650,7 @@ export const AppContainer = (props: AppContainerProps) => {
         defaultEndpoint={openAiCompatibleDefaults.endpoint}
         defaultApiKey={openAiCompatibleDefaults.apiKey}
         defaultModel={openAiCompatibleDefaults.model}
+        defaultMaxTokens={openAiCompatibleDefaults.maxTokens?.toString() ?? ''}
       />
     );
   }

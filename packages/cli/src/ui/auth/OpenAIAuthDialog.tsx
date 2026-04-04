@@ -13,12 +13,18 @@ import { useTextBuffer } from '../components/shared/text-buffer.js';
 import { useKeypress } from '../hooks/useKeypress.js';
 
 interface OpenAIAuthDialogProps {
-  onSubmit: (endpoint: string, apiKey: string, model: string) => void;
+  onSubmit: (
+    endpoint: string,
+    apiKey: string,
+    model: string,
+    maxTokens?: number,
+  ) => void;
   onCancel: () => void;
   error?: string | null;
   defaultEndpoint?: string;
   defaultApiKey?: string;
   defaultModel?: string;
+  defaultMaxTokens?: string;
 }
 
 export function OpenAIAuthDialog({
@@ -28,6 +34,7 @@ export function OpenAIAuthDialog({
   defaultEndpoint = '',
   defaultApiKey = '',
   defaultModel = '',
+  defaultMaxTokens = '',
 }: OpenAIAuthDialogProps): React.JSX.Element {
   const terminalWidth = 80;
   const viewportWidth = terminalWidth - 8;
@@ -71,9 +78,25 @@ export function OpenAIAuthDialog({
     singleLine: true,
   });
 
-  const buffers = [endpointBuffer, apiKeyBuffer, modelBuffer];
-  const fieldLabels = ['端点 URL', 'API 密钥', '模型名称'];
-  const placeholders = ['https://api.example.com', 'sk-...', 'model-name'];
+  const maxTokensBuffer = useTextBuffer({
+    initialText: defaultMaxTokens || '',
+    initialCursorOffset: defaultMaxTokens?.length || 0,
+    viewport: {
+      width: viewportWidth,
+      height: 4,
+    },
+    inputFilter: (text) => text.replace(/[\r\n]/g, ''),
+    singleLine: true,
+  });
+
+  const buffers = [endpointBuffer, apiKeyBuffer, modelBuffer, maxTokensBuffer];
+  const fieldLabels = ['端点 URL', 'API 密钥', '模型名称', '最大 token 数'];
+  const placeholders = [
+    'https://api.example.com',
+    'sk-...',
+    'model-name',
+    '例如 4096',
+  ];
 
   // 检测端点是否包含 /v1 后缀
   const endpointHasV1Suffix = useMemo(() => {
@@ -91,15 +114,17 @@ export function OpenAIAuthDialog({
       .replace(/\/$/, '');
     const apiKey = apiKeyBuffer.text.trim();
     const model = modelBuffer.text.trim();
-    onSubmit(endpoint, apiKey, model);
-  }, [endpointBuffer, apiKeyBuffer, modelBuffer, onSubmit]);
+    const maxTokensText = maxTokensBuffer.text.trim();
+    const maxTokens = maxTokensText ? parseInt(maxTokensText, 10) : undefined;
+    onSubmit(endpoint, apiKey, model, maxTokens);
+  }, [endpointBuffer, apiKeyBuffer, modelBuffer, maxTokensBuffer, onSubmit]);
 
   const handleNextField = useCallback(() => {
-    setActiveFieldIndex((prev) => (prev + 1) % 3);
+    setActiveFieldIndex((prev) => (prev + 1) % 4);
   }, []);
 
   const handlePrevField = useCallback(() => {
-    setActiveFieldIndex((prev) => (prev - 1 + 3) % 3);
+    setActiveFieldIndex((prev) => (prev - 1 + 4) % 4);
   }, []);
 
   useKeypress(
@@ -119,7 +144,7 @@ export function OpenAIAuthDialog({
 
   const handleFieldSubmit = useCallback(
     (_value: string) => {
-      if (activeFieldIndex < 2) {
+      if (activeFieldIndex < 3) {
         handleNextField();
       } else {
         handleSubmit();
